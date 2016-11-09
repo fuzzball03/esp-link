@@ -1,5 +1,4 @@
 //===== MQTT cards
-
 function changeMqtt(e) {
   e.preventDefault();
   var url = "mqtt?1=1";
@@ -25,26 +24,26 @@ function changeMqtt(e) {
 function displayMqtt(data) {
   Object.keys(data).forEach(function (v) {
     el = $("#" + v);
-    if (el != null) {
+    if (el !== null) {
       if (el.nodeName === "INPUT") el.value = data[v];
       else el.innerHTML = data[v];
       return;
     }
     el = document.querySelector('input[name="' + v + '"]');
-    if (el != null) {
+    if (el !== null) {
       if (el.type == "checkbox") el.checked = data[v] > 0;
       else el.value = data[v];
     }
   });
-  $("#mqtt-spinner").setAttribute("hidden", "");
-  $("#mqtt-status-spinner").setAttribute("hidden", "");
-  $("#mqtt-form").removeAttribute("hidden");
-  $("#mqtt-status-form").removeAttribute("hidden");
+  hideSpinnerShow("#mqtt", "status-spinner", "status-form");
+  hideSpinnerShow("#mqtt", "spinner", "form");
 
   var i, inputs = $("input");
   for (i = 0; i < inputs.length; i++) {
     if (inputs[i].type == "checkbox")
-      inputs[i].onclick = function () { setMqtt(this.name, this.checked) };
+      inputs[i].onclick = function () {
+        setMqtt(this.name, this.checked)
+      };
   }
 }
 
