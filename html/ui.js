@@ -134,8 +134,13 @@ function onLoad(f) {
 //===== helpers to add/remove/toggle HTML element classes
 
 function addClass(el, cl) {
-  el.className += ' ' + cl;
+  if (el.className !== undefined) {
+    el.className += ' ' + cl;
+  } else {
+    el.className = cl; //No space infront of class name if object contains no class. Not necessary, but it keeps the code prettier.
+    }
 }
+
 function removeClass(el, cl) {
   var cls = el.className.split(/\s+/),
       l = cls.length;
@@ -145,9 +150,25 @@ function removeClass(el, cl) {
   el.className = cls.join(' ');
   return cls.length != l
 }
+
 function toggleClass(el, cl) {
   if (!removeClass(el, cl)) addClass(el, cl);
 }
+
+function hideClass(cl) {
+  $(cl).setAttribute("hidden", "");
+}
+
+function showClass(cl) {
+  $(cl).removeAttribute("hidden", "");
+}
+
+function hideSpinnerShow(klass, nameHide, nameShow) {
+  hideClass("#" + klass + "-" + nameHide);
+  showClass("#" + klass + "-" + nameShow);
+}
+
+
 
 //===== AJAX
 
@@ -196,12 +217,12 @@ function ajaxJson(method, url, ok_cb, err_cb) {
 }
 
 function ajaxSpin(method, url, ok_cb, err_cb) {
-  $("#spinner").removeAttribute('hidden');
+  showClass("#spinner")
   ajaxReq(method, url, function(resp) {
-      $("#spinner").setAttribute('hidden', '');
+      hideClass("#spinner")
       ok_cb(resp);
     }, function(status, statusText) {
-      $("#spinner").setAttribute('hidden', '');
+      hideClass("#spinner")
       //showWarning("Error: " + statusText);
       err_cb(status, statusText);
     });
@@ -292,8 +313,7 @@ function showWifiInfo(data) {
   });
   var dhcp = $('#dhcp-r'+data.dhcp);
   if (dhcp) dhcp.click();
-  $("#wifi-spinner").setAttribute("hidden", "");
-  $("#wifi-table").removeAttribute("hidden");
+  hideSpinnerShow("wifi", "spinner", "table")
   currAp = data.ssid;
 }
 
@@ -308,9 +328,8 @@ function showTelnetInfo(data) {
   Object.keys(data).forEach(function(v) {
     setEditToClick("telnet-"+v, data[v]);
   });
-  $("#telnet-spinner").setAttribute("hidden", "");
-  $("#telnet-table").removeAttribute("hidden");
-  currAp = data.ssid;
+  hideSpinnerShow("telnet", "spinner", "table")
+  //currAp = data.ssid;  //Thought this was needed based on showSystemInfo & getWifiInfo, but after a closer look it appears uneeded.
 }
 
 function getTelnetInfo() {
@@ -324,8 +343,7 @@ function showSystemInfo(data) {
   Object.keys(data).forEach(function(v) {
     setEditToClick("system-"+v, data[v]);
   });
-  $("#system-spinner").setAttribute("hidden", "");
-  $("#system-table").removeAttribute("hidden");
+  hideSpinnerShow("system", "spinner", "table")
   currAp = data.ssid;
 }
 
@@ -347,7 +365,8 @@ function makeAjaxInput(klass, field) {
     var enableEditToClick = function() {
       eoff.setAttribute('hidden','');
       domForEach(eon, function(el){ el.removeAttribute('hidden'); });
-      eon[0].select();
+      console.log(eon[0]);
+      eon[0].select(); //This fails for 'select' HTML tags becuase there is no internal select()
       return false;
     }
 
@@ -391,17 +410,19 @@ function showWarning(text) {
   var el = $("#warning");
   el.innerHTML = text;
   el.removeAttribute('hidden');
-  window.scrollTo(0, 0);
+  window.scrollTo(0, 0); //comment this line to prevent window scroll up notifications
 }
+
 function hideWarning() {
-  el = $("#warning").setAttribute('hidden', '');
+  el = $("#warning").setAttribute('hidden', ''); //Why are we setting el = to an object here?
 }
+
 var notifTimeout = null;
 function showNotification(text) {
   var el = $("#notification");
   el.innerHTML = text;
   el.removeAttribute('hidden');
-  window.scrollTo(0, 0); //Uncomment this line so window will scroll up on regular notifications
+  window.scrollTo(0, 0); //comment this line to prevent window scroll up notifications
   if (notifTimeout != null) clearTimeout(notifTimeout);
   notifTimout = setTimeout(function() {
       el.setAttribute('hidden', '');
@@ -463,7 +484,7 @@ function displayPins(resp) {
       sel.appendChild(opt);
     });
     var pup = $(".popup", sel.parentNode);
-    if (pup !== undefined) hidePopup(pup[0]);
+    if (pup >= 1) hidePopup(pup[0]); // pup will still return an empty object, so !== undefined will not work
   };
 
   createSelectForPin("reset", resp["reset"]);
@@ -474,8 +495,8 @@ function displayPins(resp) {
   $("#pin-rxpup").checked = !!resp["rxpup"];
   createPresets($("#pin-preset"));
 
-  $("#pin-spinner").setAttribute("hidden", "");
-  $("#pin-table").removeAttribute("hidden");
+  hideClass("#pin-spinner");
+  showClass("pin-table");
 }
 
 function fetchPins() {
@@ -500,4 +521,154 @@ function setPins(ev) {
     showWarning(errMsg);
     window.setTimeout(fetchPins, 100);
   });
+}
+
+function populateAjaxSelect(klass, field, opts, val) {
+  var sel = $("#" + klass + "-" + field);
+  // console.dir(sel);
+  // console.log("sel : " + sel);
+  addClass(sel, "pure-button");
+  console.dir(sel);
+  console.log("sel : " + sel);
+  sel.innerHTML = "";
+  var arrOpts = opts.split(',');
+  console.log("Opts : " + opts);
+  console.dir(arrOpts);
+  arrOpts.forEach(function(i) {
+    var opt = document.createElement("option");
+    opt.value = i;
+    opt.innerHTML = i;
+    console.log("Element 'i' : " + i);
+    console.dir(opt);
+    console.log("opt.innerHTML/opt.value : " + opt.innerHTML + "/" + opt.value);
+    if (i == val) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  
+  //No popup on some fields
+  var pup = $(".popup", sel.parentNode);
+  console.dir(pup);
+  if (pup.size >= 1) hidePopup(pup[0]);
+  
+  hideSpinnerShow(klass, "spinner", "table")
+};
+
+function setTelnet() {
+  var url = "/telnet";
+  var sep = "?";
+  //["port0mode", "port0pass", "port1mode", "port1pass"].forEach(function(p) {
+  ["port0mode", "port1mode"].forEach(function(p) {
+    if ($("#telnet-"+p).length) {
+      console.log("");
+      console.log("#telnet-" + p + ": " + $("#telnet-" + p).value);
+      url += sep + p + "=" + $("#telnet-" + p).value;
+      sep = "&";
+    }
+  });
+  console.dir(url);
+  ajaxSpin("POST", url, function() {
+    showNotification("Telnet options changed");
+  }, function(status, errMsg) {
+    showWarning(errMsg);
+    window.setTimeout(showTelnetInfo, 100);
+  });
+}
+
+function getAjaxInfo(klass) {
+  var data = ajaxJson('GET', "/" + klass, showAjaxInfo,
+    function(s, st) { window.setTimeout(getAjaxInfo, 1000); 
+    });
+}
+
+function showAjaxInfo(data) {
+  Object.keys(data).forEach(function(v) {
+    console.log("telnet" + "-"+v, data[v]);
+  });
+  ajaxSelectInit(data);
+}
+
+function debugEnable() {
+  var telnetDebug = 1;
+}
+
+  var ajaxSelectPresets = {
+    // array: Sets ajax select options
+    "telnet-port0mode": [ 'open','disabled','secure' ],
+    "telnet-port1mode": [ 'open','disabled','secure' ],
+  };
+function findTelnetInfo(data, findName) {
+  return data[findName] === findName;
+}
+
+function ajaxSelectInit(data) {
+ /* 
+  Object.keys(ajaxSelectPresets).forEach(function(key, index) {
+    //this[key].innerHTML = "";
+    console.log("key ->", key); //Returns array name
+    console.log("index ->", index); //Returns named array index
+    console.log(this[key]); //Returns current object
+    console.log(this[key][0]); //Returns current object first child
+    console.log(ajaxSelectPresets[key]); //Returns array stored at current key
+    console.log(ajaxSelectPresets[key][index]); //Returns array stored at current key
+    
+    for (var n in ajaxSelectPresets[key]) {
+      console.log("ajaxSelectPresets[" + key + "] ->", n);
+      console.dir(n);
+      console.log("ajaxSelectPresets[", key, "][", n, "] ->", ajaxSelectPresets[key][n]);
+    }
+    
+  });
+
+  Object.keys(ajaxSelectPresets).forEach(function(key, index) {
+    console.log("key ->", key);
+    console.log("index ->", index);
+    console.log(this[key]);
+    console.log(key, this[key][0]);
+    console.log(key, key[0]);
+  }, ajaxSelectPresets);
+  */
+  var klass = "telnet";
+    Object.keys(ajaxSelectPresets).forEach(function(name) {
+      //this[key].innerHTML = "";
+      
+      console.log("name ->", name); //Returns array name
+      console.log("ajaxSelectPresets[name] ->", ajaxSelectPresets[name]); //Returns named array index
+      console.log(this[name]); //Returns current object
+      console.log(this[name][0]); //Returns current object first child
+      
+      var sel = this[name];
+      addClass(sel, "pure-button");
+      sel.innerHTML = "";
+      var lookupVal = name.split("-");
+      console.dir(lookupVal);
+      lookupVal = lookupVal[1];
+      var val = data[lookupVal];
+      console.log("name->", name);
+      console.log("data->", data);
+      console.dir(val);
+      
+      ajaxSelectPresets[name].forEach(function(i) {
+        var opt = document.createElement("option");
+        opt.value = i;
+        opt.innerHTML = i;
+        console.log("Element 'i' : " + i);
+        console.dir(opt);
+        console.log("opt.innerHTML/opt.value : " + opt.innerHTML + "/" + opt.value);
+        if (i == val) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      
+      hideSpinnerShow("telnet", "spinner", "table");
+      
+      var pup = $(".popup", sel.parentNode);
+      console.dir(pup);
+      if (pup.size >= 1) hidePopup(pup[0]);
+  });
+  
+  //No popup on some fields
+
+  
+
+ 
+  
 }
