@@ -454,7 +454,8 @@ function showWarning(text) {
 }
 
 function hideWarning() {
-  $("#warning").setAttribute('hidden', ''); //Why are we setting el = to an object here?
+  // $("#warning").setAttribute('hidden', ''); //Why are we setting el = to an object here?
+  hideClass("#warning");
 }
 
 var notifTimeout = null;
@@ -464,10 +465,10 @@ function showNotification(text) {
   el.innerHTML = text;
   el.removeAttribute('hidden');
   window.scrollTo(0, 0); //comment this line to prevent window scroll up notifications
-  if (notifTimeout !== null) clearTimeout(notifTimeout);
-  var notifTimout = setTimeout(function () {
+  if (notifTimeout !== null) clearTimeout(notifTimeout); //typos?
+  var notifTimeout = setTimeout(function () {
     el.setAttribute('hidden', '');
-    notifTimout = null;
+    notifTimeout = null;
   }, 4000);
 }
 

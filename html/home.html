@@ -1,16 +1,3 @@
-<!doctype html>
-<html>
-
-<head>
-  <title>esp-link</title>
-  <link rel="stylesheet" type="text/css" href="/pure.css">
-  <link rel="stylesheet" type="text/css" href="/style.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script type="text/javascript" src="/ui.js"></script>
-</head>
-
-<body>
-  <div id="layout">
     <!-- delete above, testing only  -->
     <div id="main">
       <div class="header">
@@ -320,13 +307,13 @@
           //populateAjaxSelect("telnet", "port0mode", "open,disabled,secure", "secure");
           //populateAjaxSelect("telnet", "port1mode", "open,disabled,secure", "open");
           //ajaxSelectInit(); //This should replace the above two statements
-          //fetchPins();
-          //getWifiInfo(); 
+          fetchPins();
+          getWifiInfo();
+          getSystemInfo();
           getTelnetInfo();
           getAjaxInfo("telnet");
           bnd($("#pinform"), "submit", setPins);
           bnd($("#telnetform"), "submit", setTelnet);
-          //getSystemInfo();
         });
 
       </script>
