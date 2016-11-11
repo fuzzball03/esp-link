@@ -171,14 +171,14 @@ function hideSpinnerShow(klass, nameHide, nameShow) {
 //===== AJAX
 
 function ajaxReq(method, url, ok_cb, err_cb, data) {
-  var xhr = j();
+  var xhr = j(); //This should allow requests to be made from any browser. FIXME: Use more intuative function name?
   xhr.open(method, url, true);
   var timeout = setTimeout(function () {
     xhr.abort();
     console.log("XHR abort:", method, url);
     xhr.status = 599;
     xhr.responseText = "request time-out";
-  }, 9000);
+  }, 9000); //After 9 seconds we print method&url in console, & return error code.
   xhr.onreadystatechange = function () {
       if (xhr.readyState != 4) {
         return;
@@ -572,20 +572,12 @@ function populateAjaxSelect(klass, field, opts, val) {
   // console.dir(sel);
   // console.log("sel : " + sel);
   addClass(sel, "pure-button");
-  console.dir(sel);
-  console.log("sel : " + sel);
   sel.innerHTML = "";
   var arrOpts = opts.split(',');
-  console.log("Opts : " + opts);
-  console.dir(arrOpts);
   arrOpts.forEach(function (i) {
     var opt = document.createElement("option");
     opt.value = i;
     opt.innerHTML = i;
-    console.log("Element 'i' : " + i);
-    console.dir(opt);
-    console.log("opt.innerHTML/opt.value : " + opt.innerHTML +
-      "/" + opt.value);
     if (i == val) opt.selected = true;
     sel.appendChild(opt);
   });
@@ -603,13 +595,10 @@ function setTelnet() {
   //["port0mode", "port0pass", "port1mode", "port1pass"].forEach(function(p) {
 	["port0mode", "port1mode"].forEach(function (p) {
     if ($("#telnet-" + p).length) {
-      console.log("");
-      console.log("#telnet-" + p + ": " + $("#telnet-" + p).value);
       url += sep + p + "=" + $("#telnet-" + p).value;
       sep = "&";
     }
   });
-  console.dir(url);
   ajaxSpin("POST", url, function () {
     showNotification("Telnet options changed");
   }, function (status, errMsg) {
@@ -618,11 +607,12 @@ function setTelnet() {
   });
 }
 
+function delayedCall(func, timeout) {
+  window.setTimeout(fun, timeout);
+}
+
 function getAjaxInfo(klass) {
-  var data = ajaxJson('GET', "/" + klass, showAjaxInfo,
-    function () {
-      window.setTimeout(getAjaxInfo, 1000);
-    });
+  var data = ajaxJson('GET', "/" + klass, showAjaxInfo, delayedCall(getAjaxInfo, 1000));
 }
 
 function showAjaxInfo(data) {
