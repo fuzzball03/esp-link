@@ -424,8 +424,7 @@ function makeAjaxInput(klass, field) {
       return submitEditToClick(eon[0].value);
     });
     bnd(eon[0], "keyup", function (ev) {
-      if ((ev || window.event).keyCode == 13) return;
-      submitEditToClick(eon[0].value);
+      if ((ev || window.event).keyCode == 13) return submitEditToClick(eon[0].value);
     });
   });
 }
@@ -607,12 +606,15 @@ function setTelnet() {
   });
 }
 
+// Helper function to increase readability of code. FIXME @tve Keep or delete?
 function delayedCall(func, timeout) {
-  window.setTimeout(fun, timeout);
+  window.setTimeout(func, timeout);
 }
 
 function getAjaxInfo(klass) {
-  var data = ajaxJson('GET', "/" + klass, showAjaxInfo, delayedCall(getAjaxInfo, 1000));
+  var data = ajaxJson('GET', "/" + klass, showAjaxInfo, function () {
+    window.setTimeout(getAjaxInfo, 1000);
+  });
 }
 
 function showAjaxInfo(data) {
