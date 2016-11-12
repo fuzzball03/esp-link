@@ -642,7 +642,8 @@ function ajaxSelectInit(data) {
       var opt = document.createElement("option");
       opt.value = i;
       opt.innerHTML = i;
-      if (i == val) opt.selected = true;
+      console.log(name, val, i)
+      if (i == val) { opt.selected = true; console.log("i is equal to val", i, val); }
       sel.appendChild(opt);
     });
 
