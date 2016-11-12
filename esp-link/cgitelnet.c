@@ -3,7 +3,23 @@
 #include "config.h"
 #include "serbridge.h"
 
-static char *portMode[] = {"open", "disabled", "secure"};
+// The three definitions below need to match with each other, and with the content of html/ui.js:ajaxSelectPresets
+const static int nPortModes = 4;
+static char *portMode[] = {
+  "open",
+  "disabled",
+  "secure",
+  "password"
+};
+static int portModeBits[] = {
+  /* open */		SER_BRIDGE_MODE_NONE,
+  /* disabled */	SER_BRIDGE_MODE_DISABLED,
+  /* secure */		SER_BRIDGE_MODE_SECURE,
+  /* password */	SER_BRIDGE_MODE_PASSWORD
+};
+
+static int string2portMode(char *s);
+static char *portMode2string(int8_t m);
 
 // Cgi to return choice of Telnet ports
 int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
@@ -13,11 +29,14 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
 
   int len;
 
-  os_printf("Current telnet ports: port0=%d port1=%d\n",
-            flashConfig.telnet_port0, flashConfig.telnet_port1);
+  os_printf("Current telnet ports: port0=%d (mode %d %s) port1=%d (mode %d %s)\n",
+    flashConfig.telnet_port0, flashConfig.telnet_port0mode, portMode2string(flashConfig.telnet_port0mode),
+    flashConfig.telnet_port1, flashConfig.telnet_port1mode, portMode2string(flashConfig.telnet_port1mode));
 
-  len = os_sprintf(buff, "{ \"port0\": \"%d\", \"port1\": \"%d\" }",
-                   flashConfig.telnet_port0, flashConfig.telnet_port1);
+  len = os_sprintf(buff,
+    "{ \"port0\": \"%d\", \"port1\": \"%d\", \"port0mode\": \"%d\", \"port1mode\": \"%d\" }",
+    flashConfig.telnet_port0, flashConfig.telnet_port1,
+    flashConfig.telnet_port0mode, flashConfig.telnet_port1mode);
 
   jsonHeader(connData, 200);
   httpdSend(connData, buff, len);
@@ -25,7 +44,13 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
   return HTTPD_CGI_DONE;
 }
 
-// Cgi to change choice of Telnet ports
+/*
+ * Cgi to change choice of Telnet ports
+ *
+ * Can be called with several URLs :
+ *	PUT http://esp-link/telnet?port1=35
+ *	PUT http://esp-link/telnet?port0mode=open&port1mode=secure
+ */
 int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   char buf[80];
 
@@ -40,20 +65,20 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   os_printf("cgiTelnetSet ok0 %d ok1 %d port0 %d port1 %d\n", ok0, ok1, port0,
             port1);
 
-  if (ok0 <= 0 &&
-      ok1 <= 0) {  // If we get at least one good value, this should be >= 1
-    ets_sprintf(buf,
-                "Unable to fetch telnet ports. Previous %d %d  Received: "
-                "port0=%d port1=%d\n",
-                flashConfig.telnet_port0, flashConfig.telnet_port1, port0,
-                port1);
-    os_printf(buf);
-    errorResponse(connData, 400, buf);
-    return HTTPD_CGI_DONE;
-  }
-
   if (ok0 == 1) flashConfig.telnet_port0 = port0;
   if (ok1 == 1) flashConfig.telnet_port1 = port1;
+
+  // Change port mode
+  int mok0, mok1;
+  char port0mode[16], port1mode[16];
+  mok0 = getStringArg(connData, "port0mode", port0mode, sizeof(port0mode));
+  mok1 = getStringArg(connData, "port1mode", port1mode, sizeof(port1mode));
+
+  os_printf("cgiTelnetSet mok0 %d mok1 %d port0 %s port1 %s\n", mok0, mok1, port0mode, port1mode);
+  int mode0 = string2portMode(port0mode);
+  int mode1 = string2portMode(port1mode);
+  if (mok0 == 1) flashConfig.telnet_port0mode = mode0;
+  if (mok1 == 1) flashConfig.telnet_port1mode = mode1;
 
   // check whether ports are different
   if (flashConfig.telnet_port0 == flashConfig.telnet_port1) {
@@ -80,8 +105,8 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
 
   // apply the changes
   serbridgeInit();
-  serbridgeStart(0, flashConfig.telnet_port0, flashDefault.telnet_port0mode);
-  serbridgeStart(1, flashConfig.telnet_port1, flashDefault.telnet_port1mode);
+  serbridgeStart(0, flashConfig.telnet_port0, flashConfig.telnet_port0mode);
+  serbridgeStart(1, flashConfig.telnet_port1, flashConfig.telnet_port1mode);
 
   return HTTPD_CGI_DONE;
 }
@@ -99,9 +124,20 @@ int ICACHE_FLASH_ATTR cgiTelnet(HttpdConnData *connData) {
   }
 }
 
-static char *portMode2string(int8_t m) {  // Should we put this into flash?
-  if (m < 0 || m > 2) return "?";
+static char *portMode2string(int8_t m) { //Should we put this into flash?
+  if (m < 0 || m >= nPortModes)
+    return "?";
   return portMode[m];
+}
+
+static int string2portMode(char *s) {
+  for (int i=0; i<nPortModes; i++)
+    if (strcmp(s, portMode[i]) == 0) {
+  os_printf("string2portMode(%s) -> %d\n", s, portModeBits[i]);
+      return i;
+    }
+  os_printf("string2portMode(%s) -> %d\n", s, -1);
+  return -1;
 }
 
 // print various Telnet information into json buffer
