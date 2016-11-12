@@ -626,8 +626,8 @@ function showAjaxInfo(data) {
 
 var ajaxSelectPresets = {
   // array: Sets ajax select options
-  "telnet-port0mode": ['open', 'disabled', 'secure'],
-  "telnet-port1mode": ['open', 'disabled', 'secure'],
+  "telnet-port0mode": ['open', 'disabled', 'secure', 'password'],
+  "telnet-port1mode": ['open', 'disabled', 'secure', 'password'],
 };
 
 function ajaxSelectInit(data) {
@@ -642,7 +642,7 @@ function ajaxSelectInit(data) {
       var opt = document.createElement("option");
       opt.value = i;
       opt.innerHTML = i;
-      console.log(name, val, i)
+      console.log("Creating select element for ", name, " with a value of", i, " Checking if it's equal to val", i);
       if (i == val) { opt.selected = true; console.log("i is equal to val", i, val); }
       sel.appendChild(opt);
     });

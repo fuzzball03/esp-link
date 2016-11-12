@@ -36,7 +36,7 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
   len = os_sprintf(buff,
     "{ \"port0\": \"%d\", \"port1\": \"%d\", \"port0mode\": \"%d\", \"port1mode\": \"%d\" }",
     flashConfig.telnet_port0, flashConfig.telnet_port1,
-    flashConfig.telnet_port0mode, flashConfig.telnet_port1mode);
+    portMode[flashConfig.telnet_port0mode], portMode[flashConfig.telnet_port1mode]);
 
   jsonHeader(connData, 200);
   httpdSend(connData, buff, len);
