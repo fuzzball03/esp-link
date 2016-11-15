@@ -241,7 +241,7 @@ MODULES		+= $(foreach sdir,$(LIBRARIES_DIR),$(wildcard $(sdir)/*))
 EXTRA_INCDIR 	= include .
 
 # libraries used in this project, mainly provided by the SDK
-LIBS = c gcc hal phy pp net80211 wpa main lwip crypto
+LIBS = c gcc hal phy pp net80211 wpa main lwip crypto ssl
 
 # compiler flags using during compilation of source files
 CFLAGS	+= -Os -ggdb -std=c99 -Werror -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
@@ -517,3 +517,8 @@ ifeq ("$(COMPRESS_W_HTMLCOMPRESSOR)","yes")
 endif
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
+
+depend:
+	makedepend -Y -- $(CFLAGS) -- */*.c
+
+# DO NOT DELETE
