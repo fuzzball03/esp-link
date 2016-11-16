@@ -34,7 +34,7 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
     flashConfig.telnet_port1, flashConfig.telnet_port1mode, portMode2string(flashConfig.telnet_port1mode));
 
   len = os_sprintf(buff,
-    "{ \"port0\": \"%d\", \"port1\": \"%d\", \"port0mode\": \"%d\", \"port1mode\": \"%d\" }",
+    "{ \"port0\": \"%d\", \"port1\": \"%d\", \"port0mode\": \"%s\", \"port1mode\": \"%s\" }",
     flashConfig.telnet_port0, flashConfig.telnet_port1,
     portMode[flashConfig.telnet_port0mode], portMode[flashConfig.telnet_port1mode]);
 
