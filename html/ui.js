@@ -629,7 +629,7 @@ var ajaxSelectPresets = {
   "telnet-port0mode": ['open', 'disabled', 'secure', 'password'],
   "telnet-port1mode": ['open', 'disabled', 'secure', 'password'],
 };
-
+ 
 function ajaxSelectInit(data) {
   Object.keys(ajaxSelectPresets).forEach(function (name) {
     var sel = this[name];
@@ -637,13 +637,12 @@ function ajaxSelectInit(data) {
     sel.innerHTML = "";
     var lookupVal = name.split("-");
     lookupVal = lookupVal[1];
-    var val = data[lookupVal];
-    ajaxSelectPresets[name].forEach(function (i) {
+    var flashCfgSelect = data[lookupVal];
+    ajaxSelectPresets[name].forEach(function (newSelPreset) {
       var opt = document.createElement("option");
-      opt.value = i;
-      opt.innerHTML = i;
-      console.log("Creating select element for ", name, " with a value of", i, " Checking if it's equal to val", i);
-      if (i == val) { opt.selected = true; console.log("i is equal to val", i, val); }
+      opt.value = newSelPreset;
+      opt.innerHTML = newSelPreset;
+      if (newSelPreset == flashCfgSelect) { opt.selected = true; console.log("This matches our current flashConfig value: ", flashCfgSelect); console.dir(opt); }
       sel.appendChild(opt);
     });
 
