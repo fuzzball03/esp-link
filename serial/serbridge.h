@@ -6,6 +6,7 @@
 #include <espconn.h>
 
 #define SER_BRIDGE_MAX_CONN 4
+#define MAX_CONN SER_BRIDGE_MAX_CONN
 #define	SER_BRIDGE_MAX_PORTS    2
 #define SER_BRIDGE_TIMEOUT 300 // 300 seconds = 5 minutes
 
