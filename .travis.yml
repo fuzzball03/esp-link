@@ -25,5 +25,4 @@ deploy:
   file: esp-link-testing-*.t*gz
   on:
     repo: fuzzball03/esp-link
-    tags: true
     all_branches: true
