@@ -539,7 +539,7 @@ function displayPins(resp) {
   createPresets($("#pin-preset"));
 
   hideClass("#pin-spinner");
-  showClass("pin-table");
+  showClass("#pin-table");
 }
 
 function fetchPins() {
