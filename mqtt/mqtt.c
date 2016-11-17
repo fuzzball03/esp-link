@@ -49,17 +49,6 @@
 
 extern void dumpMem(void *buf, int len);
 
-// HACK
-sint8 espconn_secure_connect(struct espconn *espconn) {
-  return espconn_connect(espconn);
-}
-sint8 espconn_secure_disconnect(struct espconn *espconn) {
-  return espconn_disconnect(espconn);
-}
-sint8 espconn_secure_sent(struct espconn *espconn, uint8 *psent, uint16 length) {
-  return espconn_sent(espconn, psent, length);
-}
-
 // max message size supported for receive
 #define MQTT_MAX_RCV_MESSAGE 2048
 // max message size for sending (except publish)
