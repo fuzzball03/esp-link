@@ -16,8 +16,12 @@
 #define syslog(X1...)
 #endif
 
-static struct espconn serbridgeConn[2]; // 0 = plain bridging port, 1 = programming port
-static esp_tcp serbridgeTcp[2];
+#include "sslcert.h"
+
+static serbridgePortData	ports[SER_BRIDGE_MAX_PORTS];
+
+static struct espconn serbridgeConn[SER_BRIDGE_MAX_PORTS]; // 0 = plain bridging port, 1 = programming port
+static esp_tcp serbridgeTcp[SER_BRIDGE_MAX_PORTS];
 static int8_t mcu_reset_pin, mcu_isp_pin;
 
 uint8_t in_mcu_flashing;   // for disabling slip during MCU flashing
@@ -26,7 +30,7 @@ void (*programmingCB)(char *buffer, short length) = NULL;
 void ICACHE_FLASH_ATTR serbridgeCleanup(int ix);
 
 // Connection pool
-serbridgeConnData connData[MAX_CONN];
+serbridgeConnData connData[SER_BRIDGE_MAX_CONN];
 
 //===== TCP -> UART
 
@@ -248,7 +252,12 @@ sendtxbuffer(serbridgeConnData *conn)
   if (conn->txbufferlen != 0) {
     //os_printf("TX %p %d\n", conn, conn->txbufferlen);
     conn->readytosend = false;
-    result = espconn_sent(conn->conn, (uint8_t*)conn->txbuffer, conn->txbufferlen);
+
+    if (conn->secure)
+      result = espconn_secure_sent(conn->conn, (uint8_t*)conn->txbuffer, conn->txbufferlen);
+    else
+      result = espconn_sent(conn->conn, (uint8_t*)conn->txbuffer, conn->txbufferlen);
+
     conn->txbufferlen = 0;
     if (result != ESPCONN_OK) {
       os_printf("sendtxbuffer: espconn_sent error %d on conn %p\n", result, conn);
@@ -305,7 +314,13 @@ overflow:
     if (system_get_time() - conn->txoverflow_at > 10*1000*1000) {
       // no progress in 10 seconds, kill the connection
       os_printf("serbridge: killing overlowing stuck conn %p\n", conn);
-      espconn_disconnect(conn->conn);
+
+      if (conn->secure) {
+        espconn_secure_disconnect(conn->conn);
+      } else {
+        espconn_disconnect(conn->conn);
+      }
+
     }
     // else be silent, we already printed an error
   } else {
@@ -338,7 +353,7 @@ console_process(char *buf, short len)
   for (short i=0; i<len; i++)
     console_write_char(buf[i]);
   // push the buffer into each open connection
-  for (short i=0; i<MAX_CONN; i++) {
+  for (short i=0; i<SER_BRIDGE_MAX_CONN; i++) {
     if (connData[i].conn) {
       espbuffsend(&connData[i], buf, len);
     }
@@ -349,6 +364,8 @@ console_process(char *buf, short len)
 void ICACHE_FLASH_ATTR
 serbridgeUartCb(char *buf, short length)
 {
+  extern void ICACHE_FLASH_ATTR secureBridgeUartCb(char *buf, short length);
+
   if (programmingCB) {
     programmingCB(buf, length);
   } else if (!flashConfig.slip_enable || in_mcu_flashing > 0) {
@@ -367,7 +384,12 @@ serbridgeUartCb(char *buf, short length)
 static void ICACHE_FLASH_ATTR
 serbridgeDisconCb(void *arg)
 {
+  struct espconn *ec = (struct espconn *)arg;
   serbridgeConnData *conn = ((struct espconn*)arg)->reverse;
+
+  os_printf("Disconnect %d.%d.%d.%d:%d\n", ec->proto.tcp->remote_ip[0], ec->proto.tcp->remote_ip[1],
+    ec->proto.tcp->remote_ip[2], ec->proto.tcp->remote_ip[3], ec->proto.tcp->remote_port);
+
   if (conn == NULL) return;
   // Free buffers
   if (conn->sentbuffer != NULL) os_free(conn->sentbuffer);
@@ -394,6 +416,17 @@ serbridgeResetCb(void *arg, sint8 err)
   serbridgeDisconCb(arg);
 }
 
+// Reconnect callback
+static void ICACHE_FLASH_ATTR
+serbridgeReconnectCb(void *arg, sint8 err)
+{
+  struct espconn *conn = arg;
+
+  os_printf("Reconnect %d.%d.%d.%d:%d err %d reconnect\n", conn->proto.tcp->remote_ip[0],
+    conn->proto.tcp->remote_ip[1], conn->proto.tcp->remote_ip[2],
+    conn->proto.tcp->remote_ip[3], conn->proto.tcp->remote_port, err);
+}
+
 // New connection callback, use one of the connection descriptors, if we have one left.
 static void ICACHE_FLASH_ATTR
 serbridgeConnectCb(void *arg)
@@ -401,12 +434,15 @@ serbridgeConnectCb(void *arg)
   struct espconn *conn = arg;
   // Find empty conndata in pool
   int i;
-  for (i=0; i<MAX_CONN; i++) if (connData[i].conn==NULL) break;
+  for (i=0; i<SER_BRIDGE_MAX_CONN; i++) if (connData[i].conn==NULL) break;
+#if 0
+  os_printf("SERBRIDGE Accept port %d, conn=%p, pool slot %d\n", conn->proto.tcp->local_port, conn, i);
 #ifdef SERBR_DBG
   os_printf("Accept port %d, conn=%p, pool slot %d\n", conn->proto.tcp->local_port, conn, i);
 #endif
+#endif
   syslog(SYSLOG_FAC_USER, SYSLOG_PRIO_NOTICE, "esp-link", "Accept port %d, conn=%p, pool slot %d\n", conn->proto.tcp->local_port, conn, i);
-  if (i==MAX_CONN) {
+  if (i==SER_BRIDGE_MAX_CONN) {
 #ifdef SERBR_DBG
     os_printf("Aiee, conn pool overflow!\n");
 #endif
@@ -415,16 +451,151 @@ serbridgeConnectCb(void *arg)
     return;
   }
 
+  espconn_regist_reconcb(conn, serbridgeReconnectCb);
+
   os_memset(connData+i, 0, sizeof(struct serbridgeConnData));
   connData[i].conn = conn;
   conn->reverse = connData+i;
   connData[i].readytosend = true;
   connData[i].conn_mode = cmInit;
-  // if it's the second port we start out in programming mode
+
+  // FIXME // if it's the second port we start out in programming mode
   if (conn->proto.tcp->local_port == serbridgeConn[1].proto.tcp->local_port)
     connData[i].conn_mode = cmPGMInit;
 
+  // Also find this in the ports array
+  int ix;
+  for (ix=0; ix<SER_BRIDGE_MAX_PORTS; ix++) {
+    if (ports[ix].conn->proto.tcp->local_port == conn->proto.tcp->local_port)
+      break;
+  }
+
+  connData[i].secure = ports[ix].mode == SER_BRIDGE_MODE_SECURE;
+  // Programming mode ?
+  connData[i].conn_mode = (ports[ix].mode & SER_BRIDGE_MODE_PROGRAMMING) ? cmPGMInit : cmInit;
+  // No need for separate variable
+  // connData[i].programming = (ports[ix].mode & SER_BRIDGE_MODE_PROGRAMMING) == SER_BRIDGE_MODE_PROGRAMMING;
+
+  os_printf("SERBRIDGE Accept port %d, conn=%p, pool slot %d, ix %d, mode %d\n", conn->proto.tcp->local_port, conn, i, ix, ports[ix].mode);
+  os_printf("SERBRIDGE Accept conns %p %p %p %p\n", connData[0].conn, connData[1].conn, connData[2].conn, connData[3].conn);
+  os_printf("SERBRIDGE Accept ports %p %p\n", ports[0].conn, ports[1].conn);
+
+#if 0
+  if (connData[i].secure) {
+    espconn_secure_regist_recvcb(conn, serbridgeRecvCb);
+    espconn_secure_regist_disconcb(conn, serbridgeDisconCb);
+    espconn_secure_regist_reconcb(conn, serbridgeResetCb);
+    espconn_secure_regist_sentcb(conn, serbridgeSentCb);
+  } else {
+    espconn_regist_recvcb(conn, serbridgeRecvCb);
+    espconn_regist_disconcb(conn, serbridgeDisconCb);
+    espconn_regist_reconcb(conn, serbridgeResetCb);
+    espconn_regist_sentcb(conn, serbridgeSentCb);
+  }
+#else
   espconn_regist_recvcb(conn, serbridgeRecvCb);
+  espconn_regist_disconcb(conn, serbridgeDisconCb);
+  espconn_regist_reconcb(conn, serbridgeResetCb);
+  espconn_regist_sentcb(conn, serbridgeSentCb);
+#endif
+
+  espconn_set_opt(conn, ESPCONN_REUSEADDR|ESPCONN_NODELAY);
+}
+
+/*
+ * Receive callback
+ *
+ * We've already sent a prompt, now read feedbak and check if we got the right password
+ * If yes, flag this in the connection status, and pass along to serbridgeRecvCb()
+ */
+static void ICACHE_FLASH_ATTR
+serbridgeDetectPasswordCb(void *arg, char *data, unsigned short len)
+{
+  struct espconn *espc = (struct espconn *)arg;
+  serbridgeConnData *conn = espc->reverse;
+
+  os_printf("Password receive callback on conn %p\n", conn);
+  if (conn == NULL) return;
+
+  // Previously validated password, move along
+  if (conn->password_ok) {
+    serbridgeRecvCb(arg, data, len);
+    return;
+  }
+  if (len >= strlen(conn->port->password)) {
+    if (strncmp(data, conn->port->password, strlen(conn->port->password)) == 0) {
+      conn->password_ok = true;
+      serbridgeRecvCb(arg, data, len);
+    } else {
+      // Incorrect password, break connection
+      espconn_disconnect(espc);
+    }
+    return;
+  }
+  return;
+}
+
+// New connection callback, use one of the connection descriptors, if we have one left.
+// ask for a password
+static void ICACHE_FLASH_ATTR
+serbridgePasswordConnectCb(void *arg)
+{
+  struct espconn *conn = arg;
+  // Find empty conndata in pool
+  int i;
+  for (i=0; i<SER_BRIDGE_MAX_CONN; i++) if (connData[i].conn==NULL) break;
+#if 0
+  os_printf("SERBRIDGE Accept port %d, conn=%p, pool slot %d\n", conn->proto.tcp->local_port, conn, i);
+#ifdef SERBR_DBG
+  os_printf("(Password) Accept port %d, conn=%p, pool slot %d\n", conn->proto.tcp->local_port, conn, i);
+#endif
+#endif
+  syslog(SYSLOG_FAC_USER, SYSLOG_PRIO_NOTICE, "esp-link", "Accept port %d, conn=%p, pool slot %d\n", conn->proto.tcp->local_port, conn, i);
+  if (i==SER_BRIDGE_MAX_CONN) {
+#ifdef SERBR_DBG
+    os_printf("Aiee, conn pool overflow!\n");
+#endif
+	syslog(SYSLOG_FAC_USER, SYSLOG_PRIO_WARNING, "esp-link", "Aiee, conn pool overflow!\n");
+    espconn_disconnect(conn);
+    return;
+  }
+
+  espconn_regist_reconcb(conn, serbridgeReconnectCb);
+
+  os_memset(connData+i, 0, sizeof(struct serbridgeConnData));
+  connData[i].conn = conn;
+  conn->reverse = connData+i;
+  connData[i].readytosend = true;
+  connData[i].conn_mode = cmInit;
+  connData[i].password_ok = false;
+
+  // FIXME // if it's the second port we start out in programming mode
+  if (conn->proto.tcp->local_port == serbridgeConn[1].proto.tcp->local_port)
+    connData[i].conn_mode = cmPGMInit;
+
+  // Also find this in the ports array
+  int ix;
+  for (ix=0; ix<SER_BRIDGE_MAX_PORTS; ix++) {
+    if (ports[ix].conn->proto.tcp->local_port == conn->proto.tcp->local_port)
+      break;
+  }
+  connData[i].port = &ports[ix];
+
+  connData[i].secure = ports[ix].mode == SER_BRIDGE_MODE_SECURE;
+  // Programming mode ?
+  connData[i].conn_mode = (ports[ix].mode & SER_BRIDGE_MODE_PROGRAMMING) ? cmPGMInit : cmInit;
+  // No need for separate variable
+  // connData[i].programming = (ports[ix].mode & SER_BRIDGE_MODE_PROGRAMMING) == SER_BRIDGE_MODE_PROGRAMMING;
+
+  os_printf("SERBRIDGE Accept port %d, conn=%p, pool slot %d, ix %d, mode %d\n", conn->proto.tcp->local_port, conn, i, ix, ports[ix].mode);
+  os_printf("SERBRIDGE Accept conns %p %p %p %p\n", connData[0].conn, connData[1].conn, connData[2].conn, connData[3].conn);
+  os_printf("SERBRIDGE Accept ports %p %p\n", ports[0].conn, ports[1].conn);
+
+  // Send password prompt
+  int result = espconn_sent(conn, (uint8_t*)"Password : ", 11);
+  os_printf("Password prompt sent, %d\n", result);
+
+  espconn_regist_recvcb(conn, serbridgeDetectPasswordCb);
   espconn_regist_disconcb(conn, serbridgeDisconCb);
   espconn_regist_reconcb(conn, serbridgeResetCb);
   espconn_regist_sentcb(conn, serbridgeSentCb);
@@ -475,16 +646,20 @@ serbridgeInit()
   serbridgeInitPins();
 
   os_memset(connData, 0, sizeof(connData));
-  os_memset(&serbridgeTcp[0], 0, sizeof(serbridgeTcp[0]));
-  os_memset(&serbridgeTcp[1], 0, sizeof(serbridgeTcp[1]));
+  for (int i=0; i<SER_BRIDGE_MAX_PORTS; i++) {
+    os_memset(&serbridgeTcp[i], 0, sizeof(serbridgeTcp[i]));
+    os_memset(&ports[i], 0, sizeof(ports[i]));
+  }
 }
 
 // Start transparent serial bridge TCP server on specified port (typ. 23)
 void ICACHE_FLASH_ATTR
-serbridgeStart(int ix, int port, int mode)
+serbridgeStart(int ix, int port, int mode, char *password)
 {
+  if (mode == SER_BRIDGE_MODE_DISABLED)
+    return;
 
-  if (ix < 0 || ix > 2)			// FIXME hardcoded limit
+  if (ix < 0 || ix > SER_BRIDGE_MAX_PORTS)		// FIXME hardcoded limit
     return;
 
   // If we are already initialized, let's clean it up.
@@ -498,11 +673,48 @@ serbridgeStart(int ix, int port, int mode)
     serbridgeTcp[ix].local_port = port;
     serbridgeConn[ix].proto.tcp = &serbridgeTcp[ix];
 
-    espconn_regist_connectcb(&serbridgeConn[ix], serbridgeConnectCb);
-    espconn_accept(&serbridgeConn[ix]);
-    espconn_tcp_set_max_con_allow(&serbridgeConn[ix], MAX_CONN);
-    espconn_regist_time(&serbridgeConn[ix], SER_BRIDGE_TIMEOUT, 0);
+    ports[ix].mode = mode;
+    ports[ix].conn = &serbridgeConn[ix];
+    ports[ix].password = password;		// just a copy of the pointer
+
+    if (mode == SER_BRIDGE_MODE_PASSWORD)
+      os_printf("SERBRIDGE start ix %d port %d conn %p mode %d password %s\n",
+        ix, port, ports[ix].conn, mode, password);
+    else
+      os_printf("SERBRIDGE start ix %d port %d conn %p mode %d\n",
+        ix, port, ports[ix].conn, mode);
+
+    if (mode == SER_BRIDGE_MODE_SECURE) {
+      espconn_regist_connectcb(&serbridgeConn[ix], serbridgeConnectCb);
+      espconn_secure_set_default_certificate(default_certificate, default_certificate_len);
+      espconn_secure_set_default_private_key(default_private_key, default_private_key_len);
+      espconn_secure_accept(&serbridgeConn[ix]);
+      espconn_secure_set_size(ESPCONN_CLIENT, 1024);
+      espconn_tcp_set_max_con_allow(&serbridgeConn[ix], SER_BRIDGE_MAX_CONN);
+      espconn_regist_time(&serbridgeConn[ix], SER_BRIDGE_TIMEOUT, 0);
+    } else if (mode == SER_BRIDGE_MODE_PASSWORD) {
+      espconn_regist_connectcb(&serbridgeConn[ix], serbridgePasswordConnectCb);
+      espconn_accept(&serbridgeConn[ix]);
+      espconn_tcp_set_max_con_allow(&serbridgeConn[ix], SER_BRIDGE_MAX_CONN);
+      espconn_regist_time(&serbridgeConn[ix], SER_BRIDGE_TIMEOUT, 0);
+    } else {
+      espconn_regist_connectcb(&serbridgeConn[ix], serbridgeConnectCb);
+      espconn_accept(&serbridgeConn[ix]);
+      espconn_tcp_set_max_con_allow(&serbridgeConn[ix], SER_BRIDGE_MAX_CONN);
+      espconn_regist_time(&serbridgeConn[ix], SER_BRIDGE_TIMEOUT, 0);
+    }
   }
+}
+
+// Close all current connections
+void ICACHE_FLASH_ATTR
+serbridgeClose()
+{
+  for (int i=0; i<SER_BRIDGE_MAX_CONN; i++)
+    if (connData[i].conn_mode != 0) {
+      espconn_disconnect(connData[i].conn);
+      serbridgeCleanup(i);
+    }
 }
 
 void ICACHE_FLASH_ATTR

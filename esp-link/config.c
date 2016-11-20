@@ -39,8 +39,8 @@ FlashConfig flashDefault = {
   .telnet_port1 = 2323,
   .telnet_port0mode = 0,
   .telnet_port1mode = 0,
-  .telnet_port0pass = "\0",
-  .telnet_port1pass = "\0",
+  .telnet_port0pass = "1234567890123456\0",
+  .telnet_port1pass = "1234567890123456\0",
 };
 
 typedef union {

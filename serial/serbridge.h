@@ -32,6 +32,7 @@ enum connModes {
   cmTelnet,          // use telnet escape sequences for programming mode
 };
 
+struct serbridgePortData;
 typedef struct serbridgeConnData {
   struct espconn *conn;
   enum connModes conn_mode;     // connection mode
@@ -42,6 +43,10 @@ typedef struct serbridgeConnData {
   uint32_t       txoverflow_at; // when the transmitter started to overflow
   bool           readytosend;   // true, if txbuffer can be sent by espconn_sent
   bool		 secure;	// use SSL calls for this connection
+
+  struct serbridgePortData *port;
+  bool		 password_ok;
+
   // No need for "programming" variable, is already in (conn_mode = cmPGMInit)
   // bool	 programming;	// are we in programming mode on this connection
 } serbridgeConnData;
@@ -51,12 +56,13 @@ typedef struct serbridgePortData {
   struct espconn       *conn;
   struct esp_tcp       *tcp;
   serbridgeConnData    *connData;
+  char		       *password;
 } serbridgePortData;
 
 
 // port1 is transparent&programming, second port is programming only
 void ICACHE_FLASH_ATTR serbridgeInit();
-void ICACHE_FLASH_ATTR serbridgeStart(int ix, int port, int mode);
+void ICACHE_FLASH_ATTR serbridgeStart(int ix, int port, int mode, char *password);
 void ICACHE_FLASH_ATTR serbridgeInitPins(void);
 void ICACHE_FLASH_ATTR serbridgeUartCb(char *buf, short len);
 void ICACHE_FLASH_ATTR serbridgeReset();

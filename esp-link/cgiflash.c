@@ -18,6 +18,7 @@ Some flash handling cgi routines. Used for reading the existing flash and updati
 #include <osapi.h>
 #include "cgi.h"
 #include "cgiflash.h"
+#include "serbridge.h"
 
 #ifdef CGIFLASH_DBG
 #define DBG(format, ...) do { os_printf(format, ## __VA_ARGS__); } while(0)
@@ -177,6 +178,9 @@ int ICACHE_FLASH_ATTR cgiRebootFirmware(HttpdConnData *connData) {
   httpdHeader(connData, "Content-Length", "0");
   httpdEndHeaders(connData);
 
+  // Close TCP connections
+  serbridgeClose();
+
   // Schedule a reboot
   system_upgrade_flag_set(UPGRADE_FLAG_FINISH);
   os_timer_disarm(&flash_reboot_timer);
@@ -191,6 +195,9 @@ int ICACHE_FLASH_ATTR cgiReset(HttpdConnData *connData) {
   httpdStartResponse(connData, 200);
   httpdHeader(connData, "Content-Length", "0");
   httpdEndHeaders(connData);
+
+  // Close TCP connections
+  serbridgeClose();
 
   // Schedule a reboot
   os_timer_disarm(&flash_reboot_timer);

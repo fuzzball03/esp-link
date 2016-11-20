@@ -11,32 +11,44 @@ static char *portMode[] = {
   "secure",
   "password"
 };
+#if 0
 static int portModeBits[] = {
   /* open */		SER_BRIDGE_MODE_NONE,
   /* disabled */	SER_BRIDGE_MODE_DISABLED,
   /* secure */		SER_BRIDGE_MODE_SECURE,
   /* password */	SER_BRIDGE_MODE_PASSWORD
 };
+#endif
 
 static int string2portMode(char *s);
 static char *portMode2string(int8_t m);
 
+// Cgi to return undefined
+int ICACHE_FLASH_ATTR cgiUndefined(HttpdConnData *connData) {
+  httpdStartResponse(connData, 204);
+  httpdEndHeaders(connData);
+  return HTTPD_CGI_DONE;
+}
+
 // Cgi to return choice of Telnet ports
 int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
-  char buff[80];
+  char buff[160];
 
   if (connData->conn == NULL) return HTTPD_CGI_DONE;  // Connection aborted
 
   int len;
 
+  // FIXME should only print when debug
   os_printf("Current telnet ports: port0=%d (mode %d %s) port1=%d (mode %d %s)\n",
     flashConfig.telnet_port0, flashConfig.telnet_port0mode, portMode2string(flashConfig.telnet_port0mode),
     flashConfig.telnet_port1, flashConfig.telnet_port1mode, portMode2string(flashConfig.telnet_port1mode));
 
   len = os_sprintf(buff,
-    "{ \"port0\": \"%d\", \"port1\": \"%d\", \"port0mode\": \"%s\", \"port1mode\": \"%s\" }",
+    "{ \"port0\": \"%d\", \"port1\": \"%d\", \"port0mode\": \"%s\", \"port1mode\": \"%s\", "
+    "\"port0pass\" : \"%s\", \"port1pass\" : \"%s\" }",
     flashConfig.telnet_port0, flashConfig.telnet_port1,
-    portMode[flashConfig.telnet_port0mode], portMode[flashConfig.telnet_port1mode]);
+    portMode2string(flashConfig.telnet_port0mode), portMode2string(flashConfig.telnet_port1mode),
+    flashConfig.telnet_port0pass, flashConfig.telnet_port1pass);
 
   jsonHeader(connData, 200);
   httpdSend(connData, buff, len);
@@ -47,9 +59,18 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
 /*
  * Cgi to change choice of Telnet ports
  *
- * Can be called with several URLs :
+ * Need to discuss how this is being called.
+ *
+ * Current situation : can be called with several URLs :
  *	PUT http://esp-link/telnet?port1=35
+ *	PUT http://esp-link/telnet?port1pass=qwerty
  *	PUT http://esp-link/telnet?port0mode=open&port1mode=secure
+ *
+ * Neither variable flashConfig nor the flash storage (copied from flashConfig by
+ * our call to configSave()) should ever be left in an inconsistent state. A later
+ * call of this function might pick up the inconsistency and save to flash.
+ *
+ * FIXME implementation not ok yet, awaiting discussion.
  */
 int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   char buf[80];
@@ -62,6 +83,7 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   uint16_t port0, port1;
   ok0 = getUInt16Arg(connData, "port0", &port0);
   ok1 = getUInt16Arg(connData, "port1", &port1);
+
   os_printf("cgiTelnetSet ok0 %d ok1 %d port0 %d port1 %d\n", ok0, ok1, port0,
             port1);
 
@@ -93,6 +115,33 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   os_printf("Telnet ports changed: port0=%d port1=%d\n",
             flashConfig.telnet_port0, flashConfig.telnet_port1);
 
+  // Password management
+  int pok0, pok1;
+  char port0pass[16], port1pass[16];
+  pok0 = getStringArg(connData, "port0pass", port0pass, sizeof(port0pass));
+  pok1 = getStringArg(connData, "port1pass", port1pass, sizeof(port1pass));
+
+  if (pok0 == 1 && strlen(port0pass) > sizeof(flashConfig.telnet_port0pass)) {
+    os_sprintf(buf, "Port 0 password too long (max %d)", strlen(port0pass));
+    errorResponse(connData, 400, buf);
+    return HTTPD_CGI_DONE;
+  }
+
+  if (pok1 == 1 && strlen(port1pass) > sizeof(flashConfig.telnet_port1pass)) {
+    os_sprintf(buf, "Port 1 password too long (max %d)", strlen(port1pass));
+    errorResponse(connData, 400, buf);
+    return HTTPD_CGI_DONE;
+  }
+
+  if (pok0 == 1) {
+    strcpy(flashConfig.telnet_port0pass, port0pass);
+    os_printf("Changed port0 password to \"%s\"\n", port0pass);
+  }
+  if (pok1 == 1) {
+    strcpy(flashConfig.telnet_port1pass, port1pass);
+    os_printf("Changed port1 password to \"%s\"\n", port1pass);
+  }
+
   // save to flash
   if (configSave()) {
     httpdStartResponse(connData, 204);
@@ -104,9 +153,10 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   }
 
   // apply the changes
+  serbridgeClose();	// Close existing connections
   serbridgeInit();
-  serbridgeStart(0, flashConfig.telnet_port0, flashConfig.telnet_port0mode);
-  serbridgeStart(1, flashConfig.telnet_port1, flashConfig.telnet_port1mode);
+  serbridgeStart(0, flashConfig.telnet_port0, flashConfig.telnet_port0mode, flashConfig.telnet_port0pass);
+  serbridgeStart(1, flashConfig.telnet_port1, flashConfig.telnet_port1mode, flashConfig.telnet_port1pass);
 
   return HTTPD_CGI_DONE;
 }
@@ -124,19 +174,17 @@ int ICACHE_FLASH_ATTR cgiTelnet(HttpdConnData *connData) {
   }
 }
 
-static char *portMode2string(int8_t m) { //Should we put this into flash?
+static ICACHE_FLASH_ATTR char *portMode2string(int8_t m) { //Should we put this into flash?
   if (m < 0 || m >= nPortModes)
     return "?";
   return portMode[m];
 }
 
-static int string2portMode(char *s) {
+static ICACHE_FLASH_ATTR int string2portMode(char *s) {
   for (int i=0; i<nPortModes; i++)
     if (strcmp(s, portMode[i]) == 0) {
-  os_printf("string2portMode(%s) -> %d\n", s, portModeBits[i]);
       return i;
     }
-  os_printf("string2portMode(%s) -> %d\n", s, -1);
   return -1;
 }
 
