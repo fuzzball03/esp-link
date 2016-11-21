@@ -13,8 +13,9 @@ env:
 script:
 - export XTENSA_TOOLS_ROOT=$PWD/xtensa-lx106-elf/bin/
 - export BRANCH=$TRAVIS_BRANCH
-- echo $(Travis Branch is $$TRAVIS_BRANCH)
-- echo $(Travis Tag is    $$TRAVIS_TAG)
+- echo "Travis Branch is $TRAVIS_BRANCH"
+- echo "Travis Tag is    $TRAVIS_TAG"
+- echo "Travis COMMIT is $TRAVIS_COMMIT"
 - echo "Dont forget to set VARIABLES for S3 to function. SEE gof3r README"
 - make release
 notifications:
