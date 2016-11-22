@@ -35,8 +35,8 @@ function displayMqtt(data) {
       else el.value = data[v];
     }
   });
-  hideSpinnerShow("#mqtt", "status-spinner", "status-form");
-  hideSpinnerShow("#mqtt", "spinner", "form");
+  hideSpinnerShow("mqtt", "status-spinner", "status-form");
+  hideSpinnerShow("mqtt", "spinner", "form");
 
   var i, inputs = $("input");
   for (i = 0; i < inputs.length; i++) {
