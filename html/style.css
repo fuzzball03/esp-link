@@ -528,3 +528,9 @@ pre.console a {
     transform: rotate(359deg);
   }
 }
+
+#telnet-table span {
+  display:block;
+  width:auto;
+  text-align: center;
+}

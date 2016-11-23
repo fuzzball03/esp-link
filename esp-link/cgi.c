@@ -206,12 +206,13 @@ int ICACHE_FLASH_ATTR cgiMenu(HttpdConnData *connData) { //This is where we can 
     "{ "
       "\"menu\": [ "
         "\"Home\", \"/home.html\", "
-        "\"WiFi Station\", \"/wifi/wifiSta.html\", "
-        "\"WiFi Soft-AP\", \"/wifi/wifiAp.html\", "
-        "\"&#xb5;C Console\", \"/console.html\", "
+        "\"WiFi Station\", \"/wifi/wifiSta.html\","
+        "\"WiFi Soft-AP\", \"/wifi/wifiAp.html\","
+        "\"&#xb5;C Console\", \"/console.html\","
         "\"Services\", \"/services.html\", "
+        "\"Telnet Bridge\", \"/telnet.html\", "
 #ifdef MQTT
-        "\"REST/MQTT\", \"/mqtt.html\", "
+        "\"REST/MQTT\", \"/mqtt.html\","
 #endif
         "\"Debug log\", \"/log.html\","
         "\"Upgrade Firmware\", \"/flash.html\","
