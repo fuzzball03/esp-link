@@ -6,11 +6,10 @@
 // The three definitions below need to match with each other, and with the content of html/ui.js:ajaxSelectPresets
 const static int nPortModes = 4;
 static char *portMode[] = {
-  "open",
-  "disabled",
-  "secure",
-  "password"
-};
+    "open",
+    "disabled",
+    "secure",
+    "password"};
 #if 0
 static int portModeBits[] = {
   /* open */		SER_BRIDGE_MODE_NONE,
@@ -40,20 +39,30 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
 
   // FIXME should only print when debug
   os_printf("Current telnet ports: port0=%d (mode %d %s) port1=%d (mode %d %s)\n",
-    flashConfig.telnet_port0, flashConfig.telnet_port0mode, portMode2string(flashConfig.telnet_port0mode),
-    flashConfig.telnet_port1, flashConfig.telnet_port1mode, portMode2string(flashConfig.telnet_port1mode));
-
+            flashConfig.telnet_port0, flashConfig.telnet_port0mode, portMode2string(flashConfig.telnet_port0mode),
+            flashConfig.telnet_port1, flashConfig.telnet_port1mode, portMode2string(flashConfig.telnet_port1mode));
+  // clang-format off
   len = os_sprintf(buff,
-    "{ \"port0\": \"%d\", \"port1\": \"%d\", \"port0mode\": \"%s\", \"port1mode\": \"%s\", "
-    "\"port0pass\" : \"%s\", \"port1pass\" : \"%s\" }",
-    flashConfig.telnet_port0, flashConfig.telnet_port1,
-    portMode2string(flashConfig.telnet_port0mode), portMode2string(flashConfig.telnet_port1mode),
-    flashConfig.telnet_port0pass, flashConfig.telnet_port1pass);
+                  "{"
+                    "\"port0\": \"%d\","
+                    "\"port1\": \"%d\","
+                    "\"port0mode\": \"%s\","
+                    "\"port1mode\": \"%s\","
+                    "\"port0pass\": \"%s\","
+                    "\"port1pass\": \"%s\"" 
+                  "}",
+                  flashConfig.telnet_port0,
+                  flashConfig.telnet_port1,
+                  portMode2string(flashConfig.telnet_port0mode), 
+                  portMode2string(flashConfig.telnet_port1mode),
+                  flashConfig.telnet_port0pass,
+                  flashConfig.telnet_port1pass);
+// clang-format on
 
-  jsonHeader(connData, 200);
-  httpdSend(connData, buff, len);
+jsonHeader(connData, 200);
+httpdSend(connData, buff, len);
 
-  return HTTPD_CGI_DONE;
+return HTTPD_CGI_DONE;
 }
 
 /*
@@ -71,6 +80,9 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
  * call of this function might pick up the inconsistency and save to flash.
  *
  * FIXME implementation not ok yet, awaiting discussion.
+ * Alex: I believe saving all parameters in one call is best. Less dynamic, but
+ * this is a rather simple function. Should we need something more complicated
+ * (say pwd field), we can just call a put to a different URL. ie 'telnet/pwd''
  */
 int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   char buf[80];
@@ -102,7 +114,7 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   if (mok0 == 1) flashConfig.telnet_port0mode = mode0;
   if (mok1 == 1) flashConfig.telnet_port1mode = mode1;
 
-  // check whether ports are different
+  // Check whether ports are different
   if (flashConfig.telnet_port0 == flashConfig.telnet_port1) {
     os_sprintf(buf,
                "Ports cannot be the same.\n Tried to set: port0=%d port1=%d\n",
@@ -153,7 +165,7 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   }
 
   // apply the changes
-  serbridgeClose();	// Close existing connections
+  serbridgeClose();  // Close existing connections
   serbridgeInit();
   serbridgeStart(0, flashConfig.telnet_port0, flashConfig.telnet_port0mode, flashConfig.telnet_port0pass);
   serbridgeStart(1, flashConfig.telnet_port1, flashConfig.telnet_port1mode, flashConfig.telnet_port1pass);
@@ -174,33 +186,42 @@ int ICACHE_FLASH_ATTR cgiTelnet(HttpdConnData *connData) {
   }
 }
 
-static ICACHE_FLASH_ATTR char *portMode2string(int8_t m) { //Should we put this into flash?
+static ICACHE_FLASH_ATTR char *portMode2string(int8_t m) {  //Should we put this into flash?
   if (m < 0 || m >= nPortModes)
     return "?";
   return portMode[m];
 }
 
 static ICACHE_FLASH_ATTR int string2portMode(char *s) {
-  for (int i=0; i<nPortModes; i++)
+  for (int i = 0; i < nPortModes; i++)
     if (strcmp(s, portMode[i]) == 0) {
       return i;
     }
   return -1;
 }
 
+// Randy - Not sure why this function is here? I do not see it called anywhere. Delete?
 // print various Telnet information into json buffer
 int ICACHE_FLASH_ATTR printTelnetSecurity(char *buff) {
-  int len;
+  int len; //
 
+// clang-format off
   len = os_sprintf(buff,
-                   "{ \"port0mode\": \"%s\", \"port0portnumber\": \"%d\", "
-                   "\"port0pwd\": \"%s\", "
-                   "\"port1mode\": \"%s\", \"port1portnumber\": \"%d\", "
-                   "\"port1pwd\": \"%s\" }",
-                   portMode2string(flashConfig.telnet_port0mode),
-                   flashConfig.telnet_port0, flashConfig.telnet_port0pass,
-                   portMode2string(flashConfig.telnet_port1mode),
-                   flashConfig.telnet_port1, flashConfig.telnet_port1pass);
+                  "{"
+                    "\"port0\": \"%d\","
+                    "\"port1\": \"%d\","
+                    "\"port0mode\": \"%s\","
+                    "\"port1mode\": \"%s\","
+                    "\"port0pass\": \"%s\","
+                    "\"port1pass\": \"%s\"" 
+                  "}",
+                  flashConfig.telnet_port0,
+                  flashConfig.telnet_port1,
+                  portMode2string(flashConfig.telnet_port0mode), 
+                  portMode2string(flashConfig.telnet_port1mode),
+                  flashConfig.telnet_port0pass,
+                  flashConfig.telnet_port1pass);
+// clang-format on
 
   return len;
 }
