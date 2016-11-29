@@ -241,7 +241,7 @@ MODULES		+= $(foreach sdir,$(LIBRARIES_DIR),$(wildcard $(sdir)/*))
 EXTRA_INCDIR 	= include .
 
 # libraries used in this project, mainly provided by the SDK
-LIBS = c gcc hal phy pp net80211 wpa main lwip crypto ssl
+LIBS ?= c gcc hal phy pp net80211 wpa main lwip crypto ssl
 
 # compiler flags using during compilation of source files
 CFLAGS	+= -Os -ggdb -std=c99 -Werror -Wpointer-arith -Wundef -Wall -Wl,-EL -fno-inline-functions \
@@ -521,4 +521,9 @@ $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
 depend:
 	makedepend -Y -- $(CFLAGS) -- */*.c
 
+# Rebuild version at least at every Makefile change
+
+build/esp-link/main.o: Makefile
+
 # DO NOT DELETE
+
