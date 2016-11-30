@@ -55,8 +55,8 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
                   flashConfig.telnet_port1,
                   portMode2string(flashConfig.telnet_port0mode), 
                   portMode2string(flashConfig.telnet_port1mode),
-                  flashConfig.telnet_port0pass,
-                  flashConfig.telnet_port1pass);
+                  function () {if (flashConfig.telnet_port0pass !== "") return "SET"; else return "UNSET"; },
+                  function () {if (flashConfig.telnet_port1pass !== "") return "SET"; else return "UNSET"; };
 // clang-format on
 
 jsonHeader(connData, 200);
@@ -201,6 +201,7 @@ static ICACHE_FLASH_ATTR int string2portMode(char *s) {
 }
 
 // Randy - Not sure why this function is here? I do not see it called anywhere. Delete?
+// FIXME Randy - any answer to the question above?
 // print various Telnet information into json buffer
 int ICACHE_FLASH_ATTR printTelnetSecurity(char *buff) {
   int len; //
