@@ -42,21 +42,18 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
             flashConfig.telnet_port0, flashConfig.telnet_port0mode, portMode2string(flashConfig.telnet_port0mode),
             flashConfig.telnet_port1, flashConfig.telnet_port1mode, portMode2string(flashConfig.telnet_port1mode));
   // clang-format off
+
   len = os_sprintf(buff,
                   "{"
                     "\"port0\": \"%d\","
                     "\"port1\": \"%d\","
                     "\"port0mode\": \"%s\","
-                    "\"port1mode\": \"%s\","
-                    "\"port0pass\": \"%s\","
-                    "\"port1pass\": \"%s\"" 
+                    "\"port1mode\": \"%s\"" 
                   "}",
                   flashConfig.telnet_port0,
                   flashConfig.telnet_port1,
                   portMode2string(flashConfig.telnet_port0mode), 
-                  portMode2string(flashConfig.telnet_port1mode),
-                  function () {if (flashConfig.telnet_port0pass !== "") return "SET"; else return "UNSET"; },
-                  function () {if (flashConfig.telnet_port1pass !== "") return "SET"; else return "UNSET"; };
+                  portMode2string(flashConfig.telnet_port1mode);
 // clang-format on
 
 jsonHeader(connData, 200);
