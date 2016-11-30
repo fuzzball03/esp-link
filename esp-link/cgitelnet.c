@@ -53,7 +53,7 @@ int ICACHE_FLASH_ATTR cgiTelnetGet(HttpdConnData *connData) {
                   flashConfig.telnet_port0,
                   flashConfig.telnet_port1,
                   portMode2string(flashConfig.telnet_port0mode), 
-                  portMode2string(flashConfig.telnet_port1mode);
+                  portMode2string(flashConfig.telnet_port1mode));
 // clang-format on
 
 jsonHeader(connData, 200);
