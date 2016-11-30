@@ -5,7 +5,7 @@ var refreshTimer;
 var hiddenInputs = [];
 
 function notifyResponse(data) {
-  Object.keys(data).forEach(function (v) {
+  Object.keys(data).forEach(function(v) {
     var elems = document.getElementsByName(v);
     var ndx;
     for (ndx = 0; ndx < elems.length; ndx++) {
@@ -13,8 +13,7 @@ function notifyResponse(data) {
       if (el.tagName == "INPUT") {
         if (el.type == "radio") {
           el.checked = data[v] == el.value;
-        }
-        else if (el.type == "checkbox") {
+        } else if (el.type == "checkbox") {
           if (data[v] == "on")
             el.checked = true;
           else if (data[v] == "off")
@@ -23,8 +22,7 @@ function notifyResponse(data) {
             el.checked = true;
           else
             el.checked = false;
-        }
-        else {
+        } else {
           el.value = data[v];
         }
       }
@@ -34,13 +32,11 @@ function notifyResponse(data) {
     }
     var elem = document.getElementById(v);
     if (elem !== null) {
-      if (elem.tagName == "P" || elem.tagName == "DIV" || elem.tagName ==
-        "SPAN" || elem.tagName == "TR" || elem.tagName == "TH" ||
-        elem.tagName == "TD" ||
-        elem.tagName == "TEXTAREA") {
+      if (elem.tagName == "P" || elem.tagName == "DIV" || elem.tagName == "SPAN" ||
+          elem.tagName == "TR" || elem.tagName == "TH" || elem.tagName == "TD" ||
+          elem.tagName == "TEXTAREA") {
         elem.innerHTML = data[v];
-      }
-      else if (elem.tagName == "UL" || elem.tagName == "OL") {
+      } else if (elem.tagName == "UL" || elem.tagName == "OL") {
         var list = data[v];
         var html = "";
 
@@ -49,8 +45,7 @@ function notifyResponse(data) {
         }
 
         elem.innerHTML = html;
-      }
-      else if (elem.tagName == "TABLE") {
+      } else if (elem.tagName == "TABLE") {
         var list = data[v];
         var html = "";
 
@@ -83,29 +78,25 @@ function notifyResponse(data) {
 
   if (refreshRate !== 0) {
     clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(function () {
-      ajaxJson("GET", window.location.pathname +
-        ".json?reason=refresh", notifyResponse);
+    refreshTimer = setTimeout(function() {
+      ajaxJson("GET", window.location.pathname + ".json?reason=refresh", notifyResponse);
     }, refreshRate);
   }
 }
 
 function notifyButtonPressed(btnId) {
-  ajaxJson("POST", window.location.pathname +
-    ".json?reason=button\&id=" + btnId, notifyResponse);
+  ajaxJson("POST", window.location.pathname + ".json?reason=button\&id=" + btnId, notifyResponse);
 }
 
 function refreshFormData() {
-  setTimeout(function () {
-    ajaxJson("GET", window.location.pathname +
-      ".json?reason=refresh",
-      function (resp) {
-        notifyResponse(resp);
-        if (loadCounter > 0) {
-          loadCounter--;
-          refreshFormData();
-        }
-      });
+  setTimeout(function() {
+    ajaxJson("GET", window.location.pathname + ".json?reason=refresh", function(resp) {
+      notifyResponse(resp);
+      if (loadCounter > 0) {
+        loadCounter--;
+        refreshFormData();
+      }
+    });
   }, 250);
 }
 
@@ -122,8 +113,7 @@ function recalculateHiddenInputs() {
         if (chk.checked) {
           hinput.disabled = true;
           hinput.value = "on";
-        }
-        else {
+        } else {
           hinput.disabled = false;
           hinput.value = "off";
         }
@@ -132,7 +122,7 @@ function recalculateHiddenInputs() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function() {
   // collect buttons
   var btns = document.getElementsByTagName("button");
   var ndx;
@@ -145,8 +135,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (id !== null && onclk === null && type == "button") {
       var fn;
-      eval("fn = function() { notifyButtonPressed(\"" + id +
-        "\") }");
+      eval("fn = function() { notifyButtonPressed(\"" + id + "\") }");
       btn.onclick = fn;
     }
   }
@@ -164,7 +153,7 @@ document.addEventListener("DOMContentLoaded", function () {
     frm.action = window.location.pathname + ".json?reason=submit";
     loadCounter = 4;
 
-    frm.onsubmit = function () {
+    frm.onsubmit = function() {
       recalculateHiddenInputs();
       refreshFormData();
       return true;
@@ -193,8 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
         var inpelems = document.getElementsByName(name);
         for (var i = 0; i < inpelems.length; i++) {
           var inptp = inpelems[i].type;
-          if (inptp == "hidden")
-            hasHidden = true;
+          if (inptp == "hidden") hasHidden = true;
         }
       }
 
@@ -212,13 +200,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // load variables at first time
-  var loadVariables = function () {
-    ajaxJson("GET", window.location.pathname +
-      ".json?reason=load", notifyResponse,
-      function () {
-        setTimeout(loadVariables, 1000);
-      }
-    );
+  var loadVariables = function() {
+    ajaxJson("GET", window.location.pathname + ".json?reason=load", notifyResponse,
+             function() { setTimeout(loadVariables, 1000); });
   };
   loadVariables();
 });

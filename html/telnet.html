@@ -105,11 +105,7 @@
           makeAjaxInput("telnet", "port1");
           makeAjaxInput("telnet", "port0pass");
           makeAjaxInput("telnet", "port1pass");
-          //makeAjaxInput("telnet", "port0mode");
-          //populateAjaxSelect("telnet", "port0mode", "open,disabled,secure", "secure");
-          //populateAjaxSelect("telnet", "port1mode", "open,disabled,secure", "open");
-          //ajaxSelectInit(); //This should replace the above two statements
-          getTelnetInfo();
+          //getTelnetInfo();
           getAjaxInfo("telnet");
           bnd($("#telnetform"), "submit", setTelnet);
         });
