@@ -491,20 +491,55 @@ function setPins(ev) {
            });
 }
 
-//===== Telnet Functions
-
 function makeAjaxInput(klass, field) {
   domForEach($("." + klass + "-" + field), function(div) {
     var eon = $(".edit-on", div);
-    eon[0].id = klass + "-" + field;
     var eoff = $(".edit-off", div)[0];
     var url = "/" + klass + "/update?" + field;
-    // Dirty fix to avoid to seperate name spaces to GET or PUT telnet ports
-    if (klass == "telnet") {
-      url = "/" + klass + "?" + field;
-    }
 
     if (eoff === undefined || eon === undefined) return;
+
+    var enableEditToClick = function() {
+      eoff.setAttribute('hidden', '');
+      domForEach(eon, function(el) { el.removeAttribute('hidden'); });
+      eon[0].select();  // This fails for 'select' HTML tags becuase there is no internal select()
+      return false;
+    };
+
+    var submitEditToClick = function(v) {
+      //      console.log("Submit POST "+url+"="+v);
+      ajaxSpin("POST", url + "=" + v,
+               function() {
+                 domForEach(eon, function(el) { el.setAttribute('hidden', ''); });
+                 eoff.removeAttribute('hidden');
+                 setEditToClick(klass + "-" + field, v);
+                 showNotification(field + " changed to " + v);
+               },
+               function() { showWarning(field + " change failed"); });
+      return false;
+    };
+
+    bnd(eoff, "click", function() { return enableEditToClick(); });
+    bnd(eon[0], "blur", function () {
+      return submitEditToClick(eon[0].value);
+    });
+    bnd(eon[0], "keyup", function (ev) {
+      if ((ev || window.event).keyCode == 13) return submitEditToClick(eon[0].value);
+    });
+  });
+}
+
+//===== Telnet Functions
+
+//This is like makeAjaxInput but it does not PUT changes to server immediately
+function makeAjaxInputCalm(klass, field) {
+  domForEach($("." + klass + "-" + field), function(div) {
+    var eon = $(".edit-on", div);
+    var eoff = $(".edit-off", div)[0];
+    var url = "/" + klass + "?" + field;
+
+    if (eoff === undefined || eon === undefined) return;
+    eon[0].id = klass + "-" + field; //Not really necessary, but does make html source cleaner
 
     var enableEditToClick = function() {
       eoff.setAttribute('hidden', '');
@@ -528,14 +563,6 @@ function makeAjaxInput(klass, field) {
     };
 
     bnd(eoff, "click", function() { return enableEditToClick(); });
-    /*
-    bnd(eon[0], "blur", function () {
-      return submitEditToClick(eon[0].value);
-    });
-    bnd(eon[0], "keyup", function (ev) {
-      if ((ev || window.event).keyCode == 13) return submitEditToClick(eon[0].value);
-    });
-    */
   });
 }
 

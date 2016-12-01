@@ -45,7 +45,7 @@ typedef struct {
            telnet_port1;
   int8_t   telnet_port0mode,
            telnet_port1mode;
-  char     telnet_port0pass[32],
+  char     telnet_port0pass[32], //FIXME we define it as 32 char here, but only max of 16 elsewhere?
            telnet_port1pass[32];
 } FlashConfig;
 extern FlashConfig flashConfig;

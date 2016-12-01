@@ -101,10 +101,10 @@
   </div>
   <script type="text/javascript">
         onLoad(function () {
-          makeAjaxInput("telnet", "port0");
-          makeAjaxInput("telnet", "port1");
-          makeAjaxInput("telnet", "port0pass");
-          makeAjaxInput("telnet", "port1pass");
+          makeAjaxInputCalm("telnet", "port0");
+          makeAjaxInputCalm("telnet", "port1");
+          makeAjaxInputCalm("telnet", "port0pass");
+          makeAjaxInputCalm("telnet", "port1pass");
           //getTelnetInfo();
           getAjaxInfo("telnet");
           bnd($("#telnetform"), "submit", setTelnet);
