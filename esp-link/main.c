@@ -98,7 +98,7 @@ HttpdBuiltInUrl builtInUrls[] = {
   { "/console/text", ajaxConsole, NULL },
   { "/console/send", ajaxConsoleSend, NULL },
   //Enable the line below to protect the WiFi configuration with an username/password combo.
-  {"/wifi/*", authBasic, myPassFn},
+  { "/wifi/*", authBasic, myPassFn},
   { "/wifi", cgiRedirect, "/wifi/wifi.html" },
   { "/wifi/", cgiRedirect, "/wifi/wifi.html" },
   { "/wifi/info", cgiWifiInfo, NULL },

@@ -7,7 +7,7 @@
 #ifdef TELNET_DBG
 #define DBG(format, ...)                                                       \
   do {                                                                         \
-    os_printf(format, ##__VA_ARGS__);                                          \
+    os_printf(format, ##__VA_ARGS__);                                         \
   } while (0)
 #else
 #define DBG(format, ...)                                                       \
@@ -160,7 +160,6 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
     }
   } else {
     errorResponse(connData, 400, buf);
-    return HTTPD_CGI_DONE;
   }
 
   // save to flash
@@ -221,14 +220,16 @@ static ICACHE_FLASH_ATTR int string2portMode(char *s) {
 static char *passBadMasks[] = {"********", "", "INVALID", "password"};
 
 static ICACHE_FLASH_ATTR int passCheck(char *s) {
-  for (int i = 0; i < sizeof(passBadMasks); i++) // Do I need to use
-                                                 // 'sizeof(x)/sizeof(x[1])' or
-                                                 // is it better to just assign
-                                                 // a static int?
+  DBG("Checking pass %s against bad masks", s);
+  for (int i = 0; i < sizeof(passBadMasks); i++) {
+    // Do I need to use 'sizeof(x)/sizeof(x[1])' or is it better to just assign
+    // a static int?
     if (strcmp(s, passBadMasks[i]) == 0) {
-      DBG("Pass matches bad mask # %d. %s \n", i, s);
+      DBG("Pass matches bad mask # %d.\n %s matches %s \n", i, passBadMasks[i],
+          s);
       return 0;
     }
+  }
   return 1;
 }
 

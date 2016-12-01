@@ -53,18 +53,20 @@ var m = function createDomEl(a,  // an HTML string
  * More: https://gist.github.com/991057
  */
 
-var $ = function(a,  // take a simple selector like "name", "#name", or ".name", and
-                 b   // an optional context, and
-                 ) {
+var $ = function(
+    a,  // take a simple selector like "name", "#name", or ".name", and
+    b   // an optional context, and
+    ) {
   a = a.match(/^(\W)?(.*)/);  // split the selector into name and symbol.
-  return (                    // return an element or list, from within the scope of
-      b                       // the passed context
-      || document             // or document,
-      )["getElement" + (      // obtained by the appropriate method calculated by
+  return (                // return an element or list, from within the scope of
+      b                   // the passed context
+      || document         // or document,
+      )["getElement" + (  // obtained by the appropriate method calculated by
                            a[1] ?
-                               a[1] == "#" ? "ById"  // the node by ID,
-                                             :
-                                             "sByClassName"  // the nodes by class name, or
+                               a[1] == "#" ?
+                               "ById"  // the node by ID,
+                               :
+                               "sByClassName"  // the nodes by class name, or
                                :
                                "sByTagName"  // the nodes by tag name,
                            )](a[2]           // called with the name.
@@ -135,8 +137,9 @@ function addClass(el, cl) {
   if (el.className !== undefined) {
     el.className += ' ' + cl;
   } else {
-    el.className = cl;  // No space infront of class name if object contains no class. Not
-                        // necessary, but it keeps the code prettier.
+    el.className =
+        cl;  // No space infront of class name if object contains no class. Not
+             // necessary, but it keeps the code prettier.
   }
 }
 
@@ -169,7 +172,8 @@ function hideSpinnerShow(klass, nameHide, nameShow) {
 //===== AJAX
 
 function ajaxReq(method, url, ok_cb, err_cb, data) {
-  var xhr = j();  // This should allow requests to be made from any browser. FIXME: Use more
+  var xhr = j();  // This should allow requests to be made from any browser.
+                  // FIXME: Use more
                   // intuative function name?
   xhr.open(method, url, true);
   var timeout = setTimeout(function() {
@@ -177,7 +181,8 @@ function ajaxReq(method, url, ok_cb, err_cb, data) {
     console.log("XHR abort:", method, url);
     xhr.status = 599;
     xhr.responseText = "request time-out";
-  }, 9000);  // After 9 seconds we print method&url in console, & return error code.
+  }, 9000);  // After 9 seconds we print method&url in console, & return error
+             // code.
   xhr.onreadystatechange =
       function() {
     if (xhr.readyState != 4) {
@@ -188,7 +193,8 @@ function ajaxReq(method, url, ok_cb, err_cb, data) {
       //      console.log("XHR done:", method, url, "->", xhr.status);
       ok_cb(xhr.responseText);
     } else {
-      console.log("XHR ERR :", method, url, "->", xhr.status, xhr.responseText, xhr);
+      console.log("XHR ERR :", method, url, "->", xhr.status, xhr.responseText,
+                  xhr);
       err_cb(xhr.status, xhr.responseText);
     }
   }
@@ -214,7 +220,8 @@ function dispatchJson(resp, ok_cb, err_cb) {
 }
 
 function ajaxJson(method, url, ok_cb, err_cb) {
-  ajaxReq(method, url, function(resp) { dispatchJson(resp, ok_cb, err_cb); }, err_cb);
+  ajaxReq(method, url, function(resp) { dispatchJson(resp, ok_cb, err_cb); },
+          err_cb);
 }
 
 function ajaxSpin(method, url, ok_cb, err_cb) {
@@ -232,7 +239,8 @@ function ajaxSpin(method, url, ok_cb, err_cb) {
 }
 
 function ajaxJsonSpin(method, url, ok_cb, err_cb) {
-  ajaxSpin(method, url, function(resp) { dispatchJson(resp, ok_cb, err_cb); }, err_cb);
+  ajaxSpin(method, url, function(resp) { dispatchJson(resp, ok_cb, err_cb); },
+           err_cb);
 }
 
 //===== main menu, header spinner and notification boxes
@@ -252,7 +260,9 @@ onLoad(function() {
       m('<div id="messages"><div id="warning" hidden></div><div id="notification" hidden></div></div>'),
       o);
   // menu hamburger button
-  l.insertBefore(m('<a href="#menu" id="menuLink" class="menu-link"><span></span></a>'), o);
+  l.insertBefore(
+      m('<a href="#menu" id="menuLink" class="menu-link"><span></span></a>'),
+      o);
   // menu left-pane
   var mm = m('<div id="menu">\
       <div class="pure-menu">\
@@ -286,10 +296,11 @@ onLoad(function() {
                var html = "", path = window.location.pathname;
                for (var i = 0; i < data.menu.length; i += 2) {
                  var href = data.menu[i + 1];
-                 html = html.concat(" <li class=\"pure-menu-item" +
-                                    (path === href ? " pure-menu-selected" : "") + "\">" +
-                                    "<a href=\"" + href + "\" class=\"pure-menu-link\">" +
-                                    data.menu[i] + "</a></li>");
+                 html = html.concat(
+                     " <li class=\"pure-menu-item" +
+                     (path === href ? " pure-menu-selected" : "") + "\">" +
+                     "<a href=\"" + href + "\" class=\"pure-menu-link\">" +
+                     data.menu[i] + "</a></li>");
                }
                $("#menu-list").innerHTML = html;
 
@@ -325,15 +336,18 @@ function showWifiInfo(data) {
 }
 
 function getWifiInfo() {
-  ajaxJson('GET', "/wifi/info", showWifiInfo, function() { window.setTimeout(getWifiInfo, 1000); });
+  ajaxJson('GET', "/wifi/info", showWifiInfo,
+           function() { window.setTimeout(getWifiInfo, 1000); });
 }
 
 //===== Telnet info
 
 function showTelnetInfo(data) {
-  Object.keys(data).forEach(function(v) { setEditToClick("telnet-" + v, data[v]); });
+  Object.keys(data)
+      .forEach(function(v) { setEditToClick("telnet-" + v, data[v]); });
   hideSpinnerShow("telnet", "spinner", "table");
-  // currAp = data.ssid;  //Thought this was needed based on showSystemInfo & getWifiInfo, but after
+  // currAp = data.ssid;  //Thought this was needed based on showSystemInfo &
+  // getWifiInfo, but after
   // a closer look it appears uneeded.
 }
 
@@ -345,7 +359,8 @@ function getTelnetInfo() {
 //===== System info
 
 function showSystemInfo(data) {
-  Object.keys(data).forEach(function(v) { setEditToClick("system-" + v, data[v]); });
+  Object.keys(data)
+      .forEach(function(v) { setEditToClick("system-" + v, data[v]); });
   hideSpinnerShow("system", "spinner", "table");
   currAp = data.ssid;
 }
@@ -376,11 +391,13 @@ function showWarning(text) {
   var el = $("#warning");
   el.innerHTML = text;
   el.removeAttribute('hidden');
-  window.scrollTo(0, 0);  // comment this line to prevent window scroll up notifications
+  window.scrollTo(
+      0, 0);  // comment this line to prevent window scroll up notifications
 }
 
 function hideWarning() {
-  // $("#warning").setAttribute('hidden', ''); //Why are we setting el = to an object here?
+  // $("#warning").setAttribute('hidden', ''); //Why are we setting el = to an
+  // object here?
   hideClass("#warning");
 }
 
@@ -390,7 +407,8 @@ function showNotification(text) {
   var el = $("#notification");
   el.innerHTML = text;
   el.removeAttribute('hidden');
-  window.scrollTo(0, 0);  // comment this line to prevent window scroll up notifications
+  window.scrollTo(
+      0, 0);  // comment this line to prevent window scroll up notifications
   if (notifTimeout !== null) clearTimeout(notifTimeout);  // typos?
   var notifTimeout = setTimeout(function() {
     el.setAttribute('hidden', '');
@@ -455,7 +473,8 @@ function displayPins(resp) {
     });
     var pup = $(".popup", sel.parentNode);
     if (pup >= 1)
-      hidePopup(pup[0]);  // pup will still return an empty object, so !== undefined will not work
+      hidePopup(pup[0]);  // pup will still return an empty object, so !==
+                          // undefined will not work
   }
 
   createSelectForPin("reset", resp["reset"]);
@@ -471,7 +490,8 @@ function displayPins(resp) {
 }
 
 function fetchPins() {
-  ajaxJson("GET", "/pins", displayPins, function() { window.setTimeout(fetchPins, 1000); });
+  ajaxJson("GET", "/pins", displayPins,
+           function() { window.setTimeout(fetchPins, 1000); });
 }
 
 function setPins(ev) {
@@ -484,7 +504,8 @@ function setPins(ev) {
   });
   url += "&rxpup=" + ($("#pin-rxpup").checked ? "1" : "0");
   //  console.log("set pins: " + url);
-  ajaxSpin("POST", url, function() { showNotification("Pin assignment changed"); },
+  ajaxSpin("POST", url,
+           function() { showNotification("Pin assignment changed"); },
            function(status, errMsg) {
              showWarning(errMsg);
              window.setTimeout(fetchPins, 100);
@@ -502,7 +523,8 @@ function makeAjaxInput(klass, field) {
     var enableEditToClick = function() {
       eoff.setAttribute('hidden', '');
       domForEach(eon, function(el) { el.removeAttribute('hidden'); });
-      eon[0].select();  // This fails for 'select' HTML tags becuase there is no internal select()
+      eon[0].select();  // This fails for 'select' HTML tags becuase there is no
+                        // internal select()
       return false;
     };
 
@@ -510,7 +532,8 @@ function makeAjaxInput(klass, field) {
       //      console.log("Submit POST "+url+"="+v);
       ajaxSpin("POST", url + "=" + v,
                function() {
-                 domForEach(eon, function(el) { el.setAttribute('hidden', ''); });
+                 domForEach(eon,
+                            function(el) { el.setAttribute('hidden', ''); });
                  eoff.removeAttribute('hidden');
                  setEditToClick(klass + "-" + field, v);
                  showNotification(field + " changed to " + v);
@@ -520,18 +543,17 @@ function makeAjaxInput(klass, field) {
     };
 
     bnd(eoff, "click", function() { return enableEditToClick(); });
-    bnd(eon[0], "blur", function () {
-      return submitEditToClick(eon[0].value);
-    });
-    bnd(eon[0], "keyup", function (ev) {
-      if ((ev || window.event).keyCode == 13) return submitEditToClick(eon[0].value);
+    bnd(eon[0], "blur", function() { return submitEditToClick(eon[0].value); });
+    bnd(eon[0], "keyup", function(ev) {
+      if ((ev || window.event).keyCode == 13)
+        return submitEditToClick(eon[0].value);
     });
   });
 }
 
 //===== Telnet Functions
 
-//This is like makeAjaxInput but it does not PUT changes to server immediately
+// This is like makeAjaxInput but it does not PUT changes to server immediately
 function makeAjaxInputCalm(klass, field) {
   domForEach($("." + klass + "-" + field), function(div) {
     var eon = $(".edit-on", div);
@@ -539,51 +561,50 @@ function makeAjaxInputCalm(klass, field) {
     var url = "/" + klass + "?" + field;
 
     if (eoff === undefined || eon === undefined) return;
-    eon[0].id = klass + "-" + field; //Not really necessary, but does make html source cleaner
+    eon[0].id =
+        klass + "-" +
+        field;  // Not really necessary, but does make html source cleaner
 
     var enableEditToClick = function() {
       eoff.setAttribute('hidden', '');
       domForEach(eon, function(el) { el.removeAttribute('hidden'); });
       console.log(eon[0]);
-      eon[0].select();  // This fails for 'select' HTML tags becuase there is no internal select()
+      eon[0].select();  // This fails for 'select' HTML tags becuase there is no
+                        // internal select()
       return false;
     };
 
     var submitEditToClick = function(v) {
       //      console.log("Submit POST "+url+"="+v);
-      ajaxSpin("POST", url + "=" + v,
-               function() {
-                 domForEach(eon, function(el) { el.setAttribute('hidden', ''); });
-                 eoff.removeAttribute('hidden');
-                 setEditToClick(klass + "-" + field, v);
-                 showNotification(field + " changed to " + v);
-               },
-               function() { showWarning(field + " change failed"); });
-      return false;
+      domForEach(eon, function(el) { el.setAttribute('hidden', ''); });
+      eoff.removeAttribute('hidden');
+      setEditToClick(klass + "-" + field, v);
     };
 
     bnd(eoff, "click", function() { return enableEditToClick(); });
+    bnd(eon[0], "blur", function() { return submitEditToClick(eon[0].value); });
+    bnd(eon[0], "keyup", function(ev) {
+      if ((ev || window.event).keyCode == 13)
+        return submitEditToClick(eon[0].value);
+    });
   });
 }
 
 function setTelnet() {
   var url = "/telnet";
   var sep = "?";
-  ["port0", "port0mode", "port0pass", "port1", "port1mode", "port1pass"].forEach(function(p) {
-    //["port0mode", "port1mode"].forEach(function (p) {
-    // console.log(p);
-    // console.dir($("#telnet-" + p));
-    if ($("#telnet-" + p).value !== "") {
-      // if ($("#telnet-" + p).length) {
-      url += sep + p + "=" + $("#telnet-" + p).value;
-      sep = "&";
-      // console.log("url->",url);
-    }
-  });
-  ajaxSpin("POST", url, function() { showNotification("Telnet options changed"); },
+  ["port0", "port0mode", "port0pass", "port1", "port1mode", "port1pass"]
+      .forEach(function(p) {
+        if ($("#telnet-" + p).value !== "") {
+          url += sep + p + "=" + encodeURIComponent($("#telnet-" + p).value);
+          sep = "&";  // console.log("url->", url);
+        }
+      });
+  ajaxSpin("POST", url,
+           function() { showNotification("Telnet options changed"); },
            function(status, errMsg) {
              showWarning(errMsg);
-             window.setTimeout(showTelnetInfo, 100);
+             window.setTimeout(getAjaxInfo("telnet"), 100);
            });
 }
 
@@ -594,8 +615,9 @@ function delayedCall(func, timeout) {
 }
 
 function getAjaxInfo(klass) {
-  var data = ajaxJson('GET', "/" + klass, showAjaxInfo,
-                      function() { window.setTimeout(getAjaxInfo, 1000); });
+  var data = ajaxJson('GET', "/" + klass, showAjaxInfo, function() {
+    window.setTimeout(getAjaxInfo(klass), 1000);
+  });
 }
 
 function showAjaxInfo(data) {
@@ -628,7 +650,8 @@ function ajaxSelectInit(data) {
           opt.innerHTML = newSelPreset;
           if (newSelPreset == flashCfgSelect) {
             opt.selected = true;
-            // console.log("This matches our current flashConfig value: ", flashCfgSelect);
+            // console.log("This matches our current flashConfig value: ",
+            // flashCfgSelect);
             // console.dir(opt);
           }
           sel.appendChild(opt);
