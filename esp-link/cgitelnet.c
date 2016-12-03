@@ -92,7 +92,7 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   int8_t allOk =
       1; // Set this to 0 during any sanity check so we return an error
   uint16_t port0, port1;
-  char port0mode[16], port1mode[16], port0pass[16], port1pass[16];
+  char port0mode[16], port1mode[16], port0pass[SER_BRIDGE_PASSLEN+1], port1pass[SER_BRIDGE_PASSLEN+1];
 
   ok0 = getUInt16Arg(connData, "port0", &port0);
   ok1 = getUInt16Arg(connData, "port1", &port1);
@@ -125,15 +125,12 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
   }
 
   // Password management
-  if (strlen(port0pass) > sizeof(flashConfig.telnet_port0pass)) {
-    // FIXME Shouldnt this be printing max %d from the stored flash size not the
-    // pass received via url?
-    os_sprintf(buf, "Port 0 password too long (max %d)", strlen(port0pass));
+  if (strlen(port0pass) > SER_BRIDGE_PASSLEN) {
+    os_sprintf(buf, "Port 0 password too long (max %d)", SER_BRIDGE_PASSLEN);
     allOk = 0;
   }
-
-  if (strlen(port1pass) > sizeof(flashConfig.telnet_port1pass)) {
-    os_sprintf(buf, "Port 1 password too long (max %d)", strlen(port1pass));
+  if (strlen(port1pass) > SER_BRIDGE_PASSLEN) {
+    os_sprintf(buf, "Port 1 password too long (max %d)", SER_BRIDGE_PASSLEN);
     allOk = 0;
   }
 
@@ -217,11 +214,11 @@ static ICACHE_FLASH_ATTR int string2portMode(char *s) {
 }
 
 // Place any invalid password masks here
-static char *passBadMasks[] = {"********", "", "INVALID", "password"};
+static char *passBadMasks[] = {"********", "", "INVALID", "password", NULL};
 
 static ICACHE_FLASH_ATTR int passCheck(char *s) {
   DBG("Checking pass %s against bad masks", s);
-  for (int i = 0; i < sizeof(passBadMasks); i++) {
+  for (int i = 0; passBadMasks[i] != NULL; i++) {
     // Do I need to use 'sizeof(x)/sizeof(x[1])' or is it better to just assign
     // a static int?
     if (strcmp(s, passBadMasks[i]) == 0) {

@@ -1,6 +1,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Max length of a telnet password
+#define	SER_BRIDGE_PASSLEN	16
+
 // Flash configuration settings. When adding new items always add them at the end and formulate
 // them such that a value of zero is an appropriate default or backwards compatible. Existing
 // modules that are upgraded will have zero in the new fields. This ensures that an upgrade does
@@ -45,8 +48,8 @@ typedef struct {
            telnet_port1;
   int8_t   telnet_port0mode,
            telnet_port1mode;
-  char     telnet_port0pass[32], //FIXME we define it as 32 char here, but only max of 16 elsewhere?
-           telnet_port1pass[32];
+  char     telnet_port0pass[SER_BRIDGE_PASSLEN+1],
+           telnet_port1pass[SER_BRIDGE_PASSLEN+1];
 } FlashConfig;
 extern FlashConfig flashConfig;
 extern FlashConfig flashDefault;
