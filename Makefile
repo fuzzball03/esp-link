@@ -519,11 +519,11 @@ endif
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
 
 depend:
-	makedepend -Y -- $(CFLAGS) -- */*.c
+	makedepend -p${BUILD_BASE}/ -Y -- $(CFLAGS) -- */*.c
 
 # Rebuild version at least at every Makefile change
 
-build/esp-link/main.o: Makefile
+${BUILD_BASE}/esp-link/main.o: Makefile
 
 # DO NOT DELETE
 
