@@ -519,7 +519,7 @@ endif
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
 
 depend:
-	makedepend -p${BUILD_BASE}/ -Y -- $(CFLAGS) -- */*.c
+	makedepend -p${BUILD_BASE}/ -Y -- $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) -I${XTENSA_TOOLS_ROOT}../xtensa-lx106-elf/include -I${XTENSA_TOOLS_ROOT}../lib/gcc/xtensa-lx106-elf/4.8.2/include -- */*.c
 
 # Rebuild version at least at every Makefile change
 
