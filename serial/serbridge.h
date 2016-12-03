@@ -22,7 +22,7 @@ enum serbridgeModeEnum {
 #define	SER_BRIDGE_MODE_PROGRAMMING	0x10
 
 // Send buffer size
-#define MAX_TXBUFFER (2*1460)
+#define MAX_TXBUFFER (2*256)
 
 enum connModes {
   cmInit = 0,        // initialization mode: nothing received yet
