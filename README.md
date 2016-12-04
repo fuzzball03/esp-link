@@ -50,6 +50,7 @@ Separate documents:
 - [service web pages](WEB-SERVER.md)
 - [building esp-link](BUILDING.md), [over-the-air flashing](BUILDING.md#updating-the-firmware-over-the-air)
 - [flash layout](FLASH.md)
+- [security](SECURITY.md)
 
 For quick support and questions chat at
 [![Chat at https://gitter.im/jeelabs/esp-link](https://badges.gitter.im/esp-link.svg)](https://gitter.im/jeelabs/esp-link)
@@ -59,7 +60,7 @@ Releases & Downloads
 --------------------
 Esp-link uses semantic versioning. The main change between versions 1.x and 2.x was the
 addition of MQTT and outbound REST requests from the attached uC. The main change between 2.x
-and 3.x will be the addition of custom web pages (this is not ready yet).
+and 3.x will be the addition of custom web pages (this is not ready yet) and security.
 
 - The master branch is currently unstable as we integrate a number of new features to get
   to version 3.0. Please use v2.2.3 unless you want to hack up the latest code!
