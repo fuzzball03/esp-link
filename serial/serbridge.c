@@ -254,7 +254,7 @@ sendtxbuffer(serbridgeConnData *conn)
     conn->readytosend = false;
 
     if (conn->secure)
-      result = espconn_secure_sent(conn->conn, (uint8_t*)conn->txbuffer, conn->txbufferlen);
+      result = espconn_secure_send(conn->conn, (uint8_t*)conn->txbuffer, conn->txbufferlen);
     else
       result = espconn_sent(conn->conn, (uint8_t*)conn->txbuffer, conn->txbufferlen);
 
@@ -270,6 +270,12 @@ sendtxbuffer(serbridgeConnData *conn)
     }
   }
   return result;
+}
+
+void ClearEspconn(serbridgeConnData *scdp) {
+  scdp->conn = 0;
+  // FIXME
+  scdp->conn_mode = cmInit;
 }
 
 // espbuffsend adds data to the send buffer. If the previous send was completed it calls
@@ -317,8 +323,10 @@ overflow:
 
       if (conn->secure) {
         espconn_secure_disconnect(conn->conn);
+	ClearEspconn(conn);
       } else {
         espconn_disconnect(conn->conn);
+	ClearEspconn(conn);
       }
 
     }
@@ -480,24 +488,10 @@ serbridgeConnectCb(void *arg)
   os_printf("SERBRIDGE Accept conns %p %p %p %p\n", connData[0].conn, connData[1].conn, connData[2].conn, connData[3].conn);
   os_printf("SERBRIDGE Accept ports %p %p\n", ports[0].conn, ports[1].conn);
 
-#if 0
-  if (connData[i].secure) {
-    espconn_secure_regist_recvcb(conn, serbridgeRecvCb);
-    espconn_secure_regist_disconcb(conn, serbridgeDisconCb);
-    espconn_secure_regist_reconcb(conn, serbridgeResetCb);
-    espconn_secure_regist_sentcb(conn, serbridgeSentCb);
-  } else {
-    espconn_regist_recvcb(conn, serbridgeRecvCb);
-    espconn_regist_disconcb(conn, serbridgeDisconCb);
-    espconn_regist_reconcb(conn, serbridgeResetCb);
-    espconn_regist_sentcb(conn, serbridgeSentCb);
-  }
-#else
   espconn_regist_recvcb(conn, serbridgeRecvCb);
   espconn_regist_disconcb(conn, serbridgeDisconCb);
   espconn_regist_reconcb(conn, serbridgeResetCb);
   espconn_regist_sentcb(conn, serbridgeSentCb);
-#endif
 
   espconn_set_opt(conn, ESPCONN_REUSEADDR|ESPCONN_NODELAY);
 }
@@ -686,9 +680,19 @@ serbridgeStart(int ix, int port, int mode, char *password)
 
     if (mode == SER_BRIDGE_MODE_SECURE) {
       espconn_regist_connectcb(&serbridgeConn[ix], serbridgeConnectCb);
-      espconn_secure_set_default_certificate(default_certificate, default_certificate_len);
-      espconn_secure_set_default_private_key(default_private_key, default_private_key_len);
-      espconn_secure_accept(&serbridgeConn[ix]);
+      if (! espconn_secure_set_default_certificate(default_certificate, default_certificate_len)) {
+        os_printf("SERBRIDGE set_default_certificate fail\n");
+	return;
+      }
+      if (! espconn_secure_set_default_private_key(default_private_key, default_private_key_len)) {
+        os_printf("SERBRIDGE set_default_private_key fail\n");
+	return;
+      }
+      int r_acc = espconn_secure_accept(&serbridgeConn[ix]);
+      if (r_acc != 0) {
+        os_printf("SERBRIDGE secure_accept fail %d\n", r_acc);
+	return;
+      }
       espconn_secure_set_size(ESPCONN_CLIENT, 1024);
       espconn_tcp_set_max_con_allow(&serbridgeConn[ix], SER_BRIDGE_MAX_CONN);
       espconn_regist_time(&serbridgeConn[ix], SER_BRIDGE_TIMEOUT, 0);
