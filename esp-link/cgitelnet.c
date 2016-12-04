@@ -103,7 +103,7 @@ int ICACHE_FLASH_ATTR cgiTelnetSet(HttpdConnData *connData) {
 
   DBG(buf, "CgiTelnetSet -> Failed to parse all values form url.\n ok0: %d "
            "ok1: %d mok0: %d "
-           "mok1: %d pok0: %d pok1: %d",
+           "mok1: %d pok0: %d pok1: %d\n",
       ok0, ok1, mok0, mok1, pok0, pok1);
 
   if (ok0 + ok1 + mok0 + mok1 + pok0 + pok1 != 6) {
@@ -217,7 +217,7 @@ static ICACHE_FLASH_ATTR int string2portMode(char *s) {
 static char *passBadMasks[] = {"********", "", "INVALID", "password", NULL};
 
 static ICACHE_FLASH_ATTR int passCheck(char *s) {
-  DBG("Checking pass %s against bad masks", s);
+  DBG("Checking pass %s against bad masks\n", s);
   for (int i = 0; passBadMasks[i] != NULL; i++) {
     // Do I need to use 'sizeof(x)/sizeof(x[1])' or is it better to just assign
     // a static int?
