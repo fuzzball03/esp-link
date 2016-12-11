@@ -340,22 +340,6 @@ function getWifiInfo() {
            function() { window.setTimeout(getWifiInfo, 1000); });
 }
 
-//===== Telnet info
-
-function showTelnetInfo(data) {
-  Object.keys(data)
-      .forEach(function(v) { setEditToClick("telnet-" + v, data[v]); });
-  hideSpinnerShow("telnet", "spinner", "table");
-  // currAp = data.ssid;  //Thought this was needed based on showSystemInfo &
-  // getWifiInfo, but after
-  // a closer look it appears uneeded.
-}
-
-function getTelnetInfo() {
-  ajaxJson('GET', "/telnet", showTelnetInfo,
-           function() { window.setTimeout(getTelnetInfo, 1000); });
-}
-
 //===== System info
 
 function showSystemInfo(data) {
@@ -554,6 +538,7 @@ function makeAjaxInput(klass, field) {
 //===== Telnet Functions
 
 // This is like makeAjaxInput but it does not PUT changes to server immediately
+// You must create a button/script to push changes to server
 function makeAjaxInputCalm(klass, field) {
   domForEach($("." + klass + "-" + field), function(div) {
     var eon = $(".edit-on", div);
@@ -561,32 +546,76 @@ function makeAjaxInputCalm(klass, field) {
     var url = "/" + klass + "?" + field;
 
     if (eoff === undefined || eon === undefined) return;
-    eon[0].id =
-        klass + "-" +
-        field;  // Not really necessary, but does make html source cleaner
+    // Not really necessary, but does make html source cleaner
+    eon[0].id = klass + "-" + field;
 
     var enableEditToClick = function() {
       eoff.setAttribute('hidden', '');
       domForEach(eon, function(el) { el.removeAttribute('hidden'); });
-      console.log(eon[0]);
-      eon[0].select();  // This fails for 'select' HTML tags becuase there is no
-                        // internal select()
+      // This fails for 'select' HTML tags becuase there is no internal select()
+      eon[0].select();
       return false;
     };
 
-    var submitEditToClick = function(v) {
-      //      console.log("Submit POST "+url+"="+v);
+    var checkEditToClick = function(v) {
+      // console.log("Submit POST "+url+"="+v);
       domForEach(eon, function(el) { el.setAttribute('hidden', ''); });
       eoff.removeAttribute('hidden');
-      setEditToClick(klass + "-" + field, v);
+      // This will reveal any masked values. Comment out if you'd like
+      showNotification(field + " changed to " + v);
+      setEditToClick2(klass + "-" + field, v);
+      setFormStatus(klass, "Press 'change!' to save new values!");
     };
 
     bnd(eoff, "click", function() { return enableEditToClick(); });
-    bnd(eon[0], "blur", function() { return submitEditToClick(eon[0].value); });
+    bnd(eon[0], "blur", function() { return checkEditToClick(eon[0].value); });
     bnd(eon[0], "keyup", function(ev) {
       if ((ev || window.event).keyCode == 13)
-        return submitEditToClick(eon[0].value);
+        return checkEditToClick(eon[0].value);
     });
+  });
+}
+
+// Modified setEditToClick() function allowing static/masked fields.
+function setEditToClick2(klass, value) {
+  domForEach($("." + klass), function(div) {
+    if (div.children.length > 0) {
+      domForEach(div.children, function(el) {
+        if (el.nodeName === "INPUT")
+          el.value = value;
+        else if (el.nodeName !== "DIV")
+          if (div.classList.value.includes("mask")) {
+            if (value === "********") {
+              el.innerHTML = "&lt;- NOT SET -&gt;"  // Text if a invalid/default
+                                                    // pass is detected
+            } else {
+              el.innerHTML =
+                  "&lt;- SET -&gt;";  // Change to customze text after change
+            }
+          } else {
+            el.innerHTML = value;
+          }
+      });
+    } else {
+      div.innerHTML = value;
+    }
+  });
+}
+
+// Will change a status field of a form. Must name like "'klass'-form-status"
+function setFormStatus(klass, status) {
+  domForEach($("." + klass + "-form-status"), function(div) {
+    if (div.children.length > 0) {
+      domForEach(div.children, function(el) {
+        if (el.nodeName === "INPUT") {
+          el.value = status;
+        } else if (el.nodeName !== "DIV") {
+          el.innerHTML = status;
+        }
+      });
+    } else {
+      div.innerHTML = status;
+    }
   });
 }
 
@@ -608,13 +637,12 @@ function setTelnet() {
            });
 }
 
-// Helper function to increase readability of code.
-// FIXME @tve Keep or delete?
-function delayedCall(func, timeout) {
-  window.setTimeout(func, timeout);
-}
 
 function getAjaxInfo(klass) {
+  makeAjaxInputCalm("telnet", "port0");
+  makeAjaxInputCalm("telnet", "port1");
+  makeAjaxInputCalm("telnet", "port0pass");
+  makeAjaxInputCalm("telnet", "port1pass");
   var data = ajaxJson('GET', "/" + klass, showAjaxInfo, function() {
     window.setTimeout(getAjaxInfo(klass), 1000);
   });
@@ -623,7 +651,7 @@ function getAjaxInfo(klass) {
 function showAjaxInfo(data) {
   Object.keys(data).forEach(function(v) {
     // console.log("telnet" + "-" + v, data[v]);
-    setEditToClick("telnet-" + v, data[v]);
+    setEditToClick2("telnet-" + v, data[v]);
   });
   ajaxSelectInit(data);
   hideSpinnerShow("telnet", "spinner", "table");

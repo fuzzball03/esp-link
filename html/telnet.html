@@ -7,10 +7,11 @@
         <div class="pure-g">
           <div class="pure-u-1">
             <div class="card" style="max-width: 450px;">
-              <p>There are two ports available for use by default: <b>23</b> &amp; <b>2323</b>
+              <p>There are two ports available for use by default: <b>23</b>                &amp; <b>2323</b>
               </p>
               <div id="telnet-spinner" class="spinner spinner-small"></div>
-              <table id="telnet-table" class="pure-table pure-table-horizontal" hidden style="width: 100%;">
+              <table id="telnet-table" class="pure-table pure-table-horizontal" hidden
+                style="width: 100%;">
                 <tbody>
                   <tr>
                     <th>
@@ -62,9 +63,10 @@
                     <td class="popup-target">
                       <div class="pure-control-group">
                         <label for="telnet-port0pass"></label>
-                        <div class="click-to-edit telnet-port0pass">
-                          <span class="edit-off" style="display:block; width:auto; text-align: center;"></span>
-                          <input placeholder="password" class="edit-on" maxlength="10" hidden>
+                        <div class="click-to-edit telnet-port0pass mask">
+                          <span class="edit-off" style="display:block; width:auto; text-align: center;">PASS</span>
+                          <input type="password" placeholder="password" class="edit-on" maxlength="10"
+                            hidden>
                           <div class="popup">Click to edit!
                             <br>NO PWD MASKING OR ENCRYPTION</div>
                         </div>
@@ -73,9 +75,10 @@
                     <td class="popup-target">
                       <div class="pure-control-group">
                         <label for="telnet-port1pass"></label>
-                        <div class="click-to-edit telnet-port1pass">
-                          <span class="edit-off" style="display:block; width:auto; text-align: center;"></span>
-                          <input type="password" placeholder="password" class="edit-on" maxlength="10" hidden>
+                        <div class="click-to-edit telnet-port1pass mask">
+                          <span class="edit-off" style="display:block; width:auto; text-align: center;">PASS</span>
+                          <input type="password" placeholder="password" class="edit-on" maxlength="10"
+                            hidden>
                           <div class="popup">Click to edit!
                             <br>NO PWD MASKING OR ENCRYPTION</div>
                         </div>
@@ -83,10 +86,15 @@
                     </td>
                   </tr>
                   <tr>
-                    <td colspan="3">
+                    <td class="telnet-form-button">
                       <form action="#" id="telnetform" class="pure-form pure-form-aligned">
                         <button id="set-telnet" type="submit" class="pure-button button-primary">Change!</button>
                       </form>
+                    </td>
+                    <td colspan="2">
+                      <div class="telnet-form-status">
+                      <span></span>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -101,10 +109,6 @@
   </div>
   <script type="text/javascript">
         onLoad(function () {
-          makeAjaxInputCalm("telnet", "port0");
-          makeAjaxInputCalm("telnet", "port1");
-          makeAjaxInputCalm("telnet", "port0pass");
-          makeAjaxInputCalm("telnet", "port1pass");
           //getTelnetInfo();
           getAjaxInfo("telnet");
           bnd($("#telnetform"), "submit", setTelnet);
