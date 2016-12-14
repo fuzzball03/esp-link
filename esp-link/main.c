@@ -54,21 +54,73 @@ bool ICACHE_FLASH_ATTR check_memleak_debug_enable(void)
 }
 #endif
 
-//Function that tells the authentication system what users/passwords live on the system.
-//This is disabled in the default build; if you want to try it, enable the authBasic line in
-//the builtInUrls below.
-int myPassFn(HttpdConnData *connData, int no, char *user, int userLen, char *pass, int passLen) {
-	if (no==0) {
-		os_strcpy(user, "admin");
-		os_strcpy(pass, "s3cr3t");
-		return 1;
-//Add more users this way. Check against incrementing no for each user added.
-//	} else if (no==1) {
-//		os_strcpy(user, "user1");
-//		os_strcpy(pass, "something");
-//		return 1;
-	}
-	return 0;
+static int pwdLen = -1;
+static char buffer[256];
+static char *user[9], *pass[9];
+static int maxuser = -1;
+
+static void initPasswordData() {
+  if (espFsIsValid(userPageCtx)) {
+    // os_printf("initPasswordData : valid fs\n");
+    EspFsFile *fp = espFsOpen(userPageCtx, "webaccess.txt");
+    // os_printf("initPasswordData : file open\n");
+    if (fp != NULL) {
+      // os_printf("initPasswordData : about to read ...\n");
+      pwdLen = espFsRead(fp, buffer, sizeof(buffer));
+      // os_printf("initPasswordData : file read\n");
+      espFsClose(fp);
+      // os_printf("initPasswordData : file closed\n");
+    }
+  }
+  os_printf("initPasswordData : read %d bytes\n", pwdLen);
+  int i, ix, lastuser = 0, lastpass = -1;
+  for (ix=i=0; i<pwdLen && ix < 8; i++) {
+    if (buffer[i] == ',') {
+      lastpass = i+1;
+      buffer[i] = 0;
+    } else if (buffer[i] == '\n') {
+      buffer[i] = 0;
+      if (lastpass < 0)
+        continue;
+      user[ix] = &buffer[lastuser];
+      if (buffer[i+1] == '\r')
+        lastuser = i+2;
+      else
+        lastuser = i+1;
+      pass[ix] = &buffer[lastpass];
+      lastpass = -1;
+
+      os_printf("### user {%s} pass {%s}\n", user[ix], pass[ix]);
+
+      ix++;
+      maxuser = ix;
+      user[ix] = pass[ix] = NULL;
+    }
+  }
+}
+
+int myPassFn(HttpdConnData *connData, int no, char *puser, int userLen, char *ppass, int passLen) {
+  if (pwdLen < 0)
+    initPasswordData();
+#if 0
+  if (no==0) {
+    os_strcpy(puser, "admin");
+    os_strcpy(ppass, "s3cr3t");
+    return 1;
+// Add more users this way. Check against incrementing no for each user added.
+//  } else if (no==1) {
+//    os_strcpy(puser, "user1");
+//    os_strcpy(ppass, "something");
+//    return 1;
+  }
+#else
+  if (no < 0 || no >maxuser)
+    return 0;
+  os_strcpy(puser, user[no]);
+  os_strcpy(ppass, pass[no]);
+  return 1;
+#endif
+  return 0;
 }
 
 /*
@@ -109,6 +161,7 @@ HttpdBuiltInUrl builtInUrls[] = {
   { "/wifi/special", cgiWiFiSpecial, NULL },
   { "/wifi/apinfo", cgiApSettingsInfo, NULL },
   { "/wifi/apchange", cgiApSettingsChange, NULL },
+  { "/system/*", authBasic, myPassFn},
   { "/system/info", cgiSystemInfo, NULL },
   { "/system/update", cgiSystemSet, NULL },
   { "/services/info", cgiServicesInfo, NULL },
