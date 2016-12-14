@@ -27,6 +27,17 @@ All of the measures below can be applied to either of the two ports, independent
 
 # Securing the web configuration
 
+The esp-link source code has had builtin support for securing its web configuration for a long time.
+
+It was now extended with simple code that'll read a CSV file called "webaccess.txt" from the local file system.
+You can upload a file with your credentials via the web server interface.
+
+Until you've done so, assume that a default file with this content is present
+	admin,s3cr3t
+
+This means you need to enter "admin" as userid, and "s3cr3t" as password, when your browser session requests you
+to logon to esp-link.
+
 # Securing the ESP OTA programming interface
 
 # Securing the esp-link web server
