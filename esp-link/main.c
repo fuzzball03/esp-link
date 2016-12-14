@@ -61,18 +61,13 @@ static int maxuser = -1;
 
 static void initPasswordData() {
   if (espFsIsValid(userPageCtx)) {
-    // os_printf("initPasswordData : valid fs\n");
     EspFsFile *fp = espFsOpen(userPageCtx, "webaccess.txt");
-    // os_printf("initPasswordData : file open\n");
     if (fp != NULL) {
-      // os_printf("initPasswordData : about to read ...\n");
       pwdLen = espFsRead(fp, buffer, sizeof(buffer));
-      // os_printf("initPasswordData : file read\n");
       espFsClose(fp);
-      // os_printf("initPasswordData : file closed\n");
     }
   }
-  os_printf("initPasswordData : read %d bytes\n", pwdLen);
+ 
   int i, ix, lastuser = 0, lastpass = -1;
   for (ix=i=0; i<pwdLen && ix < 8; i++) {
     if (buffer[i] == ',') {
@@ -90,7 +85,7 @@ static void initPasswordData() {
       pass[ix] = &buffer[lastpass];
       lastpass = -1;
 
-      os_printf("### user {%s} pass {%s}\n", user[ix], pass[ix]);
+      // os_printf("### user {%s} pass {%s}\n", user[ix], pass[ix]);
 
       ix++;
       maxuser = ix;
@@ -112,25 +107,12 @@ int myPassFn(HttpdConnData *connData, int no, char *puser, int userLen, char *pp
       return 0;
   }
 
-#if 0
-  if (no==0) {
-    os_strcpy(puser, "admin");
-    os_strcpy(ppass, "s3cr3t");
-    return 1;
-// Add more users this way. Check against incrementing no for each user added.
-//  } else if (no==1) {
-//    os_strcpy(puser, "user1");
-//    os_strcpy(ppass, "something");
-//    return 1;
-  }
-#else
   if (no < 0 || no >maxuser)
     return 0;
+
   os_strcpy(puser, user[no]);
   os_strcpy(ppass, pass[no]);
   return 1;
-#endif
-  return 0;
 }
 
 /*
