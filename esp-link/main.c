@@ -102,6 +102,16 @@ static void initPasswordData() {
 int myPassFn(HttpdConnData *connData, int no, char *puser, int userLen, char *ppass, int passLen) {
   if (pwdLen < 0)
     initPasswordData();
+
+  if (pwdLen < 0) { // Fallback
+    if (no==0) {
+      os_strcpy(puser, "admin");
+      os_strcpy(ppass, "s3cr3t");
+      return 1;
+    } else
+      return 0;
+  }
+
 #if 0
   if (no==0) {
     os_strcpy(puser, "admin");
