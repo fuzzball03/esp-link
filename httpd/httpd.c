@@ -148,7 +148,7 @@ static int httpdHexVal(char c) {
 //Takes the valLen bytes stored in val, and converts it into at most retLen bytes that
 //are stored in the ret buffer. Returns the actual amount of bytes used in ret. Also
 //zero-terminates the ret buffer.
-int httpdUrlDecode(char *val, int valLen, char *ret, int retLen) {
+int ICACHE_FLASH_ATTR httpdUrlDecode(char *val, int valLen, char *ret, int retLen) {
   int s = 0, d = 0;
   int esced = 0, escVal = 0;
   while (s<valLen && d<retLen) {

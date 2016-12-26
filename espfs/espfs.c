@@ -109,7 +109,7 @@ void ICACHE_FLASH_ATTR memcpyFromFlash(char *dst, const char *src, int len)
 }
 
 // memcpy on MEMORY/FLASH file systems
-void espfs_memcpy( EspFsContext * ctx, void * dest, const void * src, int count )
+void ICACHE_FLASH_ATTR espfs_memcpy( EspFsContext * ctx, void * dest, const void * src, int count )
 {
 	if( ctx->source == ESPFS_MEMORY )
 		os_memcpy( dest, src, count );
@@ -118,7 +118,7 @@ void espfs_memcpy( EspFsContext * ctx, void * dest, const void * src, int count 
 }
 
 // aligned memcpy on MEMORY/FLASH file systems
-void espfs_memcpyAligned( EspFsContext * ctx, void * dest, const void * src, int count )
+void ICACHE_FLASH_ATTR espfs_memcpyAligned( EspFsContext * ctx, void * dest, const void * src, int count )
 {
 	if( ctx->source == ESPFS_MEMORY )
 		memcpyAligned(dest, src, count);
